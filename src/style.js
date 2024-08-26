@@ -368,6 +368,7 @@ export default class Style {
     getRowIndexColumnWidth() {
         const rowCount = this.datamanager.getRowCount();
         const padding = 22;
-        return $.measureTextWidth(rowCount + '') + padding;
+        const minWidth = 60; // Largeur minimale de 60px
+        return Math.max($.measureTextWidth(rowCount + '') + padding, minWidth);
     }
 }

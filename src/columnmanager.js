@@ -43,6 +43,9 @@ export default class ColumnManager {
         // reset columnMap
         this.$columnMap = [];
         this.bindMoveColumn();
+
+        // Initialize filters
+        this.initializeFilters();
     }
 
     getHeaderHTML(columns) {
@@ -258,16 +261,26 @@ export default class ColumnManager {
     }
 
     sortColumn(colIndex, nextSortOrder) {
-        this.instance.freeze();
-        this.sortRows(colIndex, nextSortOrder)
-            .then(() => {
-                this.refreshHeader();
-                return this.rowmanager.refreshRows();
-            })
-            .then(() => this.instance.unfreeze())
-            .then(() => {
-                this.fireEvent('onSortColumn', this.getColumn(colIndex));
-            });
+        cur_list.page_length = 10000;
+        cur_list.refresh().then(() => {
+            setTimeout(() => {
+                this.instance.freeze();
+                this.sortRows(colIndex, nextSortOrder)
+                    .then(() => {
+                        this.refreshHeader();
+                        return this.rowmanager.refreshRows();
+                    })
+                    .then(() => {
+                        this.instance.unfreeze();
+                        const filters = this.getAppliedFilters();
+                        return this.datamanager.filterRows(filters);
+                    })
+                    .then(() => {
+                        this.fireEvent('onSortColumn', this.getColumn(colIndex));
+                    });
+            }, 200);
+        });
+        
     }
 
     removeColumn(colIndex) {
@@ -452,4 +465,222 @@ export default class ColumnManager {
             </div>
         `;
     }
+
+    initializeFilters() {
+        this.initializeDateFilters();
+        this.initializeSelectFilters();
+    }
+
+    initializeDateFilters() {
+        const dateInputs = $.each('.date-filter', this.header);
+        dateInputs.forEach(input => {
+            jQuery(input).datepicker({
+                changeMonth: true,
+                changeYear: true,
+                dateFormat: 'dd-mm-yyyy',
+                language: frappe.boot.lang,
+                onSelect: (dateText) => {
+                    const colIndex = input.dataset.colIndex;
+                    this.applyFilter(this.getAppliedFilters());
+                }
+            });
+        });
+    }
+
+    initializeSelectFilters() {
+        const selectInputs = $.each('.select-filter', this.header);
+        const promises = selectInputs.map(input => {
+            const colIndex = input.dataset.colIndex;
+            const column = this.datamanager.getColumn(colIndex);
+            const fieldtype = column.docfield.fieldtype;
+    
+            if (fieldtype === 'Check') {
+                const options = ['Yes', 'No'].sort();
+                this.initializeAwesomplete(input, options, true);
+                return Promise.resolve();
+            } else if (fieldtype === 'Select') {
+                const options = column.docfield.options ? column.docfield.options.split('\n').filter(option => option).sort() : [];
+                this.initializeAwesomplete(input, options);
+                return Promise.resolve();
+            } else if (fieldtype === 'Link') {
+                return frappe.call({
+                    method: 'frappe.desk.reportview.get_distinct_values',
+                    args: {
+                        doctype: column.docfield.options,
+                        fieldname: "name",
+                        limit: 10000,
+                        filters: cur_list.get_filters_for_args()
+                    }
+                }).then(r => {
+                    if (r.message) {
+                        const options = r.message.map(item => item.name).filter(value => value !== null && value !== undefined).sort();
+                        this.initializeAwesomplete(input, options);
+                    }
+                });
+            }
+        });
+    
+        Promise.all(promises).then(() => {
+        }).catch(error => {
+            console.error('Error initializing select filters:', error);
+        });
+    }
+    
+    initializeAwesomplete(input, options, isCheckField = false) {
+        // Créer un conteneur personnalisé pour la liste avec un champ de recherche
+        const awesompleteContainer = document.createElement('div');
+        awesompleteContainer.classList.add('awesomplete');
+        awesompleteContainer.style.display = 'none'; // Masquer par défaut
+        document.body.appendChild(awesompleteContainer);
+    
+        // Champ de recherche pour filtrer les options
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.classList.add('awesomplete__search');
+        searchInput.placeholder = 'Rechercher...';
+        searchInput.style.paddingRight = '24px'; // Ajoute un espace pour la croix
+        awesompleteContainer.appendChild(searchInput);
+    
+        // Ajouter la croix de réinitialisation dans l'input de recherche
+        const clearButton = document.createElement('span');
+        clearButton.classList.add('awesomplete__clear');
+        clearButton.innerHTML = '&times;'; // Symbole de croix
+        clearButton.style.cursor = 'pointer';
+        clearButton.style.position = 'absolute';
+        clearButton.style.right = '10px';
+        clearButton.style.top = '50%';
+        clearButton.style.transform = 'translateY(-50%)';
+        clearButton.style.fontSize = '18px';
+        clearButton.style.color = '#999';
+    
+        // Ajouter la croix dans l'input de recherche
+        const searchInputContainer = document.createElement('div');
+        searchInputContainer.style.position = 'relative';
+        searchInputContainer.appendChild(searchInput);
+        searchInputContainer.appendChild(clearButton);
+        awesompleteContainer.appendChild(searchInputContainer);
+    
+        // Ajouter la fonction de réinitialisation
+        clearButton.addEventListener('click', () => {
+            input.value = ''; // Réinitialiser l'input principal
+            searchInput.value = ''; // Réinitialiser le champ de recherche
+            renderOptions(); // Réafficher toutes les options
+            this.applyFilter(this.getAppliedFilters()); // Appliquer les filtres mis à jour
+    
+            // Remettre le focus sur le champ de recherche
+            searchInput.focus();
+        });
+    
+        const checkboxList = document.createElement('ul');
+        checkboxList.classList.add('awesomplete__checkbox-list');
+        awesompleteContainer.appendChild(checkboxList);
+    
+        // Fonction pour afficher les options filtrées
+        const renderOptions = (filter = '') => {
+            checkboxList.innerHTML = '';
+            options
+                .filter(option => option.toLowerCase().includes(filter.toLowerCase()))
+                .forEach(option => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('awesomplete__checkbox-item');
+    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = option;
+                    checkbox.classList.add('awesomplete__checkbox');
+    
+                    const label = document.createElement('label');
+                    label.textContent = option;
+                    label.prepend(checkbox);
+    
+                    // Restaurer l'état de sélection des checkboxes si elles sont déjà sélectionnées
+                    if (input.value.split('; ').includes(option)) {
+                        checkbox.checked = true;
+                    }
+    
+                    listItem.appendChild(label);
+                    checkboxList.appendChild(listItem);
+    
+                    checkbox.addEventListener('change', (event) => {
+                        // Empêcher la fermeture lors du clic sur une checkbox
+                        event.stopPropagation();
+                        this.handleCheckboxSelection(input, checkboxList, isCheckField);
+    
+                        // Maintenir le focus sur le champ de recherche après sélection
+                        setTimeout(() => {
+                            searchInput.focus();
+                        }, 0);
+                    });
+                });
+        };
+    
+        // Filtrer les options au fur et à mesure que l'utilisateur tape
+        searchInput.addEventListener('input', () => {
+            renderOptions(searchInput.value);
+        });
+    
+        // Initialiser la liste avec toutes les options
+        renderOptions();
+    
+        input.addEventListener('focus', () => {
+            awesompleteContainer.style.display = 'block';
+    
+            const rect = input.getBoundingClientRect();
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+            awesompleteContainer.style.position = 'absolute';
+            awesompleteContainer.style.left = `${rect.left + scrollLeft}px`;
+            awesompleteContainer.style.top = `${rect.bottom + scrollTop + 10}px`;
+            awesompleteContainer.style.width = `250px`;
+    
+            // Utiliser setTimeout pour garantir que le focus est bien appliqué
+            setTimeout(() => {
+                searchInput.focus();
+            }, 0);
+        });
+    
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                // Masquer la liste seulement si l'utilisateur n'a pas cliqué sur une option
+                if (!awesompleteContainer.contains(document.activeElement)) {
+                    awesompleteContainer.style.display = 'none';
+                }
+            }, 200); // Retard pour permettre de cliquer sur une case à cocher avant que la liste ne soit cachée
+        });
+    
+        // Empêcher la fermeture lors du clic sur la liste
+        awesompleteContainer.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+        });
+    
+        // Fermer la liste en cliquant à l'extérieur
+        document.addEventListener('click', (event) => {
+            if (!awesompleteContainer.contains(event.target) && event.target !== input) {
+                awesompleteContainer.style.display = 'none';
+            }
+        });
+    }            
+    
+    handleCheckboxSelection(input, checkboxList, isCheckField) {
+        const selectedValues = input.value ? input.value.split('; ') : [];
+        checkboxList.querySelectorAll('input:checked').forEach(checkbox => {
+            if (!selectedValues.includes(checkbox.value)) {
+                selectedValues.push(checkbox.value);
+            }
+        });
+    
+        checkboxList.querySelectorAll('input:not(:checked)').forEach(checkbox => {
+            const index = selectedValues.indexOf(checkbox.value);
+            if (index > -1) {
+                selectedValues.splice(index, 1);
+            }
+        });
+    
+        // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
+        input.value = selectedValues.join('; ');
+    
+        // Appliquer les filtres
+        this.applyFilter(this.getAppliedFilters());
+    }         
 }

@@ -842,6 +842,31 @@ export default class CellManager {
             }
         }
 
+        // Ajout du code pour les types de champ spécifiques
+        const docfield = cell.column ? cell.column.docfield : null;
+        const value = cell.content;
+        const fieldname = cell.column ? cell.column.id : null; 
+        
+        if (docfield && docfield.fieldtype === "Percent") {
+            let percentage = parseFloat(value);
+            if (isNaN(percentage)) {
+                percentage = 0;
+            }
+            contentHTML = `<div class="progress" style="margin: 0px;">
+                                <div class="progress-bar progress-bar-success" role="progressbar"
+                                    aria-valuenow="${percentage}"
+                                    aria-valuemin="0" aria-valuemax="100" style="width: ${Math.round(percentage)}%;">
+                                </div><span class="percentage-label" style="position: absolute; left: 50%; top: 35%; transform: translate(-50%, -50%);">${Math.round(percentage)}%</span>
+                            </div>`;
+        } else if (typeof value === 'string' && (value.endsWith('.png') || value.endsWith('.jpg') || value.endsWith('.jpeg') || value.endsWith('.gif') || value.endsWith('.svg') || value.endsWith('.webp') || value.endsWith('.bmp'))) {
+            contentHTML = `<img src="${value}" alt="${value}" style="max-height: 24px; cursor: pointer; margin: auto; display: block;" onclick="frappe.msgprint({ title: __('Image'), message: '<div style=&quot;text-align:center;&quot;><img src=&quot;${value}&quot; style=&quot;max-width: 100%;&quot;></div>' });">`;
+        } else if (docfield && docfield.fieldtype === "Select") {
+            contentHTML = `<span class="filterable indicator-pill ${frappe.utils.guess_colour(value)} ellipsis"
+                            data-filter="${fieldname},=,${value}">
+                            <span class="ellipsis"> ${__(value)} </span>
+                        </span>`;
+        }
+
         cell.html = contentHTML;
 
         if (this.options.treeView && !(isHeader || isFilter) && cell.indent !== undefined) {
@@ -870,7 +895,6 @@ export default class CellManager {
             'dt-cell__content',
             isHeader ? `dt-cell__content--header-${colIndex}` : `dt-cell__content--col-${colIndex}`
         ].join(' ');
-
         let cellContentHTML = `
             <div class="${className}">
                 ${contentHTML}

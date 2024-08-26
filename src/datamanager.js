@@ -75,7 +75,8 @@ export default class DataManager {
                 editable: false,
                 resizable: false,
                 focusable: false,
-                dropdown: false
+                dropdown: false,
+                width: 60
             };
 
             this.columns.push(cell);
@@ -427,28 +428,20 @@ export default class DataManager {
     }
 
     filterRows(filters) {
-        return this.options.filterRows(this.rows, filters, this)
-            .then(result => {
-                if (!result) {
-                    result = this.getAllRowIndices();
-                }
-
-                if (!result.then) {
-                    result = Promise.resolve(result);
-                }
-
-                return result.then(rowsToShow => {
-                    this._filteredRows = rowsToShow;
-
-                    const rowsToHide = this.getAllRowIndices()
-                        .filter(index => !rowsToShow.includes(index));
-
-                    return {
-                        rowsToHide,
-                        rowsToShow
-                    };
-                });
-            });
+        return this.options.filterRows(this.rows, filters, {
+            doctype: this.options.doctype,
+            columns: this.columns,
+            data: this
+        })
+        .then(filteredRows => {
+            this.rows = filteredRows;
+            this._filteredRows = filteredRows.map((row, index) => index);
+            this.rowViewOrder = this._filteredRows;
+            return {
+                rowsToShow: this._filteredRows,
+                rowsToHide: []
+            };
+        });
     }
 
     getFilteredRowIndices() {
@@ -460,7 +453,7 @@ export default class DataManager {
     }
 
     getRowCount() {
-        return this.rowCount;
+        return this.rows.length;
     }
 
     _getNextRowCount() {

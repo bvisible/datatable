@@ -10,60 +10,78 @@ export default class BodyRenderer {
         this.bodyScrollable = instance.bodyScrollable;
         this.footer = this.instance.footer;
         this.log = instance.log;
+        this.start = 0;
+        this.pageLength = 100;
+        this.isLoading = false;
+        this.initLazyLoading();
+    }
+
+    initLazyLoading() {
+        this.bodyScrollable.addEventListener('scroll', () => {
+            const scrollPosition = this.bodyScrollable.scrollTop + this.bodyScrollable.clientHeight;
+            const threshold = this.bodyScrollable.scrollHeight * 0.80;
+            if (scrollPosition >= threshold && cur_list.page_length < cur_list.total_count && !this.isLoading) {
+                this.loadMoreRows();
+            }
+        });
+    }
+
+    loadMoreRows() {
+        this.isLoading = true;
+        console.log("loadMoreRows")
+        cur_list.start = cur_list.start + cur_list.page_length;
+        cur_list.page_length = cur_list.selected_page_count || 100;
+        cur_list.refresh().then(() => {
+            setTimeout(() => {
+                this.isLoading = false;
+            }, 200);
+        });
     }
 
     renderRows(rows) {
         this.visibleRows = rows;
-        this.visibleRowIndices = rows.map(row => row.meta.rowIndex);
-
+    
         if (rows.length === 0) {
             this.bodyScrollable.innerHTML = this.getNoDataHTML();
             return;
         }
-
-        // Create a temporary set for faster lookups.
-        // We can't change this.visibleRowIndices as it would be breaking for users.
-        let visibleRowIndicesSet = new Set(this.visibleRowIndices);
-        const rowViewOrder = this.datamanager.rowViewOrder.map(index => {
-            if (visibleRowIndicesSet.has(index)) {
-                return index;
-            }
-            return null;
-        }).filter(index => index !== null);
-
+    
         const computedStyle = getComputedStyle(this.bodyScrollable);
-
+        const visibleColumns = this.datamanager.getColumns().filter(col => col.visible !== false);
+    
         let config = {
             width: computedStyle.width,
             height: computedStyle.height,
             itemHeight: this.options.cellHeight,
             total: rows.length,
-            generate: (index) => {
+            generate: (index) => {    
                 const el = document.createElement('div');
-                const rowIndex = rowViewOrder[index];
-                const row = this.datamanager.getRow(rowIndex);
-                const rowHTML = this.rowmanager.getRowHTML(row, row.meta);
-                el.innerHTML = rowHTML;
-                return el.children[0];
+                const row = rows[index];    
+                if (row && Array.isArray(row)) {
+                    const rowHTML = this.rowmanager.getRowHTML(row, { rowIndex: index });    
+                    el.innerHTML = rowHTML;
+                    return el.children[0];
+                }
+                console.warn(`Unable to generate HTML for row ${index}:`, row);
+                return el;
             },
             afterRender: () => {
                 this.restoreState();
             }
         };
-
+    
         if (!this.hyperlist) {
             this.hyperlist = new HyperList(this.bodyScrollable, config);
         } else {
             this.hyperlist.refresh(this.bodyScrollable, config);
         }
-
+    
         this.renderFooter();
     }
 
     render() {
         const rows = this.datamanager.getRowsForView();
         this.renderRows(rows);
-        // setDimensions requires atleast 1 row to exist in dom
         this.instance.setDimensions();
     }
 

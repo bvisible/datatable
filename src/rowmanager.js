@@ -332,15 +332,21 @@ export default class RowManager {
         let rowIdentifier = props.rowIndex;
 
         if (props.isFilter) {
-            row = row.map(cell => (Object.assign({}, cell, {
-                content: this.getFilterInput({
-                    colIndex: cell.colIndex,
-                    name: cell.name
-                }),
-                isFilter: 1,
-                isHeader: undefined,
-                editable: false
-            })));
+            row = row.map(cell => {
+                ////
+                const fieldtype = cell.docfield ? cell.docfield.fieldtype : null;
+                return Object.assign({}, cell, {
+                    content: this.getFilterInput({
+                        colIndex: cell.colIndex,
+                        name: cell.name,
+                        fieldtype: fieldtype
+                    }),
+                    isFilter: 1,
+                    isHeader: undefined,
+                    editable: false
+                });
+                ////
+            });
 
             rowIdentifier = 'filter';
         }
@@ -359,8 +365,15 @@ export default class RowManager {
     getFilterInput(props) {
         let title = `title="Filter based on ${props.name || 'Index'}"`;
         const dataAttr = makeDataAttributeString(props);
-        return `<input class="dt-filter dt-input" type="text" ${dataAttr} tabindex="1"
-            ${props.colIndex === 0 ? 'disabled' : title} />`;
+        const fieldtype = props.fieldtype || null;
+        ////
+        if (fieldtype === 'Date') {
+            return `<input class="dt-filter date-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
+        } else if (['Select', 'Link', 'Check'].includes(fieldtype)) {
+            return `<input class="dt-filter select-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
+        }
+        ////
+        return `<input class="dt-filter dt-input" type="text" ${dataAttr} tabindex="1" ${props.colIndex === 0 ? 'disabled' : title} />`;
     }
 
     selector(rowIndex) {

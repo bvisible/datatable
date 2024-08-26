@@ -1,34 +1,231 @@
 import { isNumber, stripHTML } from './utils';
 import CellManager from './cellmanager';
 
-export default function filterRows(rows, filters, data) {
-    let filteredRowIndices = [];
+function cleanDateString(dateString) {
+    const dateFormats = [
+        { regex: /^\d{2}-\d{2}-\d{4}$/, format: 'DD-MM-YYYY' },
+        { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'YYYY-MM-DD' }
+    ];
 
-    if (Object.keys(filters).length === 0) {
-        return rows.map(row => row.meta.rowIndex);
-    }
-
-    for (let colIndex in filters) {
-        const keyword = filters[colIndex];
-
-        const filteredRows = filteredRowIndices.length ?
-            filteredRowIndices.map(i => rows[i]) :
-            rows;
-
-        const cells = filteredRows.map(row => row[colIndex]);
-
-        let filter = guessFilter(keyword);
-        let filterMethod = getFilterMethod(rows, data, filter);
-
-        if (filterMethod) {
-            filteredRowIndices = filterMethod(filter.text, cells);
-        } else {
-            filteredRowIndices = cells.map(cell => cell.rowIndex);
+    for (let { regex, format } of dateFormats) {
+        if (regex.test(dateString)) {
+            const dateParts = dateString.split('-');
+            let day, month, year;
+            if (format === 'DD-MM-YYYY') {
+                day = dateParts[0].padStart(2, '0');
+                month = dateParts[1].padStart(2, '0');
+                year = dateParts[2];
+            } else if (format === 'YYYY-MM-DD') {
+                year = dateParts[0];
+                month = dateParts[1].padStart(2, '0');
+                day = dateParts[2].padStart(2, '0');
+            }
+            if (isValidDate(day, month, year)) {
+                return `${year}-${month}-${day}`;
+            }
         }
     }
 
-    return filteredRowIndices;
-};
+    console.error('Invalid date string:', dateString);
+    return null;
+}
+
+function isValidDate(day, month, year) {
+    const date = new Date(`${year}-${month}-${day}`);
+    return date.getFullYear() == year && (date.getMonth() + 1) == month && date.getDate() == day;
+}
+
+function processFilter(column, keyword, doctype) {
+    if (column && column.docfield && column.docfield.fieldtype === 'Currency') {
+        return [doctype, column.id, 'like', `${keyword}%`];
+    } else if (column && column.docfield && column.docfield.fieldtype === 'Percent') {
+        // Vérifier si le champ est de type Percent
+        const parsedKeyword = parseFloat(keyword);
+        if (!isNaN(parsedKeyword)) {
+            // Retourner un filtre exact si le mot-clé est un nombre (comme 0)
+            return [doctype, column.id, '=', parsedKeyword];
+        } else {
+            console.error('Invalid percent format:', keyword);
+            return null;
+        }
+    } else if (column && column.id.includes(':')) {
+        const [childDoctype, childField] = column.id.split(':');
+        return [childDoctype, childField, 'like', `%${keyword}%`];
+    } else if (column) {
+        if (keyword.includes(';')) {
+            const keywordsArray = keyword.split(';').map(k => k.trim());
+            return [doctype, column.id, 'in', keywordsArray];
+        }
+        if (column.docfield.fieldtype === 'Date') {
+            const cleanedDate = cleanDateString(keyword);
+            if (cleanedDate) {
+                return [doctype, column.id, '=', cleanedDate];
+            } else {
+                console.error('Invalid date format:', keyword);
+                return null;
+            }
+        } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
+            return [doctype, column.id, '=', keyword];
+        }
+        return [doctype, column.id, 'like', `%${keyword}%`];
+    } else {
+        console.warn(`Colonne invalide à l'index ${colIndex}`);
+        return null;
+    }
+}
+
+export default function filterRows(rows, filters, data, start = 0, page_length = 10000) {
+    return new Promise((resolve, reject) => {
+        const doctype = cur_list.doctype;
+        let frappeFilters = [];
+
+        const existingFilters = cur_list.get_filters_for_args();
+        frappeFilters = frappeFilters.concat(existingFilters);
+
+        Object.keys(filters).forEach(colIndex => {
+            const keyword = filters[colIndex];
+            const column = data.columns.find(col => col.colIndex == colIndex);
+            const filter = processFilter(column, keyword, doctype);
+            if (filter) {
+                frappeFilters.push(filter);
+            }
+        });
+
+        const args = cur_list.get_call_args();
+        args.args.filters = frappeFilters;
+        args.args.start = start;
+        args.args.page_length = page_length;
+
+        frappe.call(args).then(r => {
+            cur_list.prepare_data(r);
+            let page_length = r.message.values.length
+            const pagingArea = cur_list.$paging_area[0];
+
+            const listCountElement = pagingArea.querySelector('.list-count');
+            if (listCountElement) {
+                listCountElement.textContent = page_length; 
+            }
+            const btnMore = pagingArea.querySelector('.btn-more');
+            if (btnMore) {
+                btnMore.style.display = 'none';
+            }
+
+            if (page_length < 100) {
+                page_length = 100;
+            }
+            cur_list.page_length = page_length;
+            cur_list.total_count = page_length;
+            
+            const formattedRows = cur_list.data.map((rowData, rowIndex) => {
+                return data.columns
+                    .filter(column => column.visible !== false)
+                    .map((column, colIndex) => {
+                        const cellClass = `dt-cell dt-cell--col-${colIndex} dt-cell--${colIndex}-${rowIndex} dt-cell--row-${rowIndex}`;
+                        const contentClass = `dt-cell__content dt-cell__content--col-${colIndex}`;
+                        let cellData = null;
+
+                        if (column.id.includes(':')) {
+                            const [childDoctype, childField] = column.id.split(':');
+                            const childData = rowData[`${childDoctype}:${childField}`];
+                            cellData = childData || rowData[childField] || null;
+                        } else {
+                            cellData = rowData[column.field] || null;
+                        }
+
+                        if (column.field === "meta") {
+                            return {
+                                content: cur_list.get_meta_html(rowData),
+                                rowIndex: rowIndex,
+                                colIndex: colIndex,
+                                column: column,
+                                sortOrder: column.sortOrder,
+                                editable: column.editable,
+                                focusable: column.focusable,
+                                dropdown: column.dropdown,
+                                width: column.width,
+                                name: column.name,
+                                docfield: column.docfield || {},
+                                attributes: {
+                                    class: cellClass,
+                                    "data-row-index": rowIndex,
+                                    "data-col-index": colIndex,
+                                    "tabindex": 0
+                                },
+                                contentAttributes: {
+                                    class: contentClass,
+                                    title: cellData ? cellData.toString() : ''
+                                }
+                            };
+                        }
+
+                        if (column.id === '_checkbox') {
+                            cellData = '<input type="checkbox">';
+                        } else if (column.id === '_rowIndex') {
+                            cellData = rowIndex + 1;
+                        }
+
+                        return {
+                            content: cellData,
+                            rowIndex: rowIndex,
+                            colIndex: colIndex,
+                            column: column,
+                            sortOrder: column.sortOrder,
+                            editable: column.editable,
+                            focusable: column.focusable,
+                            dropdown: column.dropdown,
+                            width: column.width,
+                            name: column.name,
+                            docfield: column.docfield || {},
+                            attributes: {
+                                class: cellClass,
+                                "data-row-index": rowIndex,
+                                "data-col-index": colIndex,
+                                "tabindex": 0
+                            },
+                            contentAttributes: {
+                                class: contentClass,
+                                title: cellData ? cellData.toString() : ''
+                            }
+                        };
+                    });
+            });
+
+            // Appliquer le tri si une colonne est triée
+            const sortedColumn = data.columns.find(col => col.sortOrder && col.sortOrder !== 'none');
+            if (sortedColumn) {
+                formattedRows.sort((a, b) => {
+                    const aValue = a.find(cell => cell.colIndex === sortedColumn.colIndex).content;
+                    const bValue = b.find(cell => cell.colIndex === sortedColumn.colIndex).content;
+                    if (sortedColumn.sortOrder === 'asc') {
+                        return aValue > bValue ? 1 : -1;
+                    } else {
+                        return aValue < bValue ? 1 : -1;
+                    }
+                });
+            }
+
+            formattedRows.forEach((row, rowIndex) => {
+                row.meta = row.meta || {};
+                row.meta.rowIndex = rowIndex;
+                row.meta.indent = row.meta.indent || 0;
+                row.meta.isLeaf = row.meta.isLeaf !== undefined ? row.meta.isLeaf : true;
+                row.meta.isTreeNodeClose = row.meta.isTreeNodeClose !== undefined ? row.meta.isTreeNodeClose : false;
+            });
+
+            data.rows = formattedRows;
+
+            if (typeof data.refresh === 'function') {
+                data.refresh(formattedRows);
+            }
+
+            resolve(formattedRows);
+        }).catch(error => {
+            console.error('Erreur lors de l\'appel de Frappe:', error);
+            reject(error);
+        });
+    });
+}
+
 
 function getFilterMethod(rows, allData, filter) {
     const getFormattedValue = cell => {
