@@ -526,6 +526,67 @@ export default class ColumnManager {
         });
     }
     
+    /*
+    initializeSelectFilters() {
+        const selectInputs = $.each('.dt-filter', this.header);
+        const promises = selectInputs.map(input => {
+            const colIndex = input.dataset.colIndex;
+            const column = this.datamanager.getColumn(colIndex);
+    
+            if (!column || !column.docfield || !column.docfield.fieldtype) {
+                return Promise.resolve(); 
+            }
+    
+            const fieldtype = column.docfield.fieldtype;
+            const fieldname = column.docfield.fieldname || "name";
+    
+            if (fieldtype === 'Check') {
+                const options = ['Yes', 'No'].sort();
+                this.initializeAwesomplete(input, options, true);
+                return Promise.resolve();
+            } else if (fieldtype === 'Select') {
+                const options = column.docfield.options ? column.docfield.options.split('\n').filter(option => option).sort() : [];
+                this.initializeAwesomplete(input, options);
+                return Promise.resolve();
+            } else if (fieldtype === 'Data' && column.name != "Meta") {    
+                return frappe.call({
+                    method: 'frappe.desk.reportview.get_distinct_values',
+                    args: {
+                        doctype: column.docfield.parent,
+                        fieldname: fieldname,
+                        limit: 10000,
+                        filters: cur_list.get_filters_for_args()
+                    }
+                }).then(r => {
+                    if (r.message) {
+                        const options = r.message.map(item => item[fieldname]).filter(value => value !== null && value !== undefined).sort();
+                        this.initializeAwesomplete(input, options);
+                    }
+                });
+            } else if (fieldtype === 'Link') {
+                return frappe.call({
+                    method: 'frappe.desk.reportview.get_distinct_values',
+                    args: {
+                        doctype: column.docfield.options,
+                        fieldname: "name",
+                        limit: 10000,
+                        filters: cur_list.get_filters_for_args()
+                    }
+                }).then(r => {
+                    if (r.message) {
+                        const options = r.message.map(item => item.name).filter(value => value !== null && value !== undefined).sort();
+                        this.initializeAwesomplete(input, options);
+                    }
+                });
+            }
+        });
+    
+        Promise.all(promises).then(() => {
+        }).catch(error => {
+            console.error('Error initializing select filters:', error);
+        });
+    }*/
+    
     initializeAwesomplete(input, options, isCheckField = false) {
         // Créer un conteneur personnalisé pour la liste avec un champ de recherche
         const awesompleteContainer = document.createElement('div');
@@ -537,7 +598,7 @@ export default class ColumnManager {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.classList.add('awesomplete__search');
-        searchInput.placeholder = 'Rechercher...';
+        searchInput.placeholder = __('Search...');
         searchInput.style.paddingRight = '24px'; // Ajoute un espace pour la croix
         awesompleteContainer.appendChild(searchInput);
     
@@ -590,7 +651,9 @@ export default class ColumnManager {
                     checkbox.classList.add('awesomplete__checkbox');
     
                     const label = document.createElement('label');
-                    label.textContent = option;
+                    // Utiliser la traduction de Frappe pour afficher l'option traduite
+                    const translatedOption = isCheckField ? (option === 'Yes' ? __('Yes') : __('No')) : __(option);
+                    label.textContent = translatedOption;
                     label.prepend(checkbox);
     
                     // Restaurer l'état de sélection des checkboxes si elles sont déjà sélectionnées
@@ -660,18 +723,26 @@ export default class ColumnManager {
                 awesompleteContainer.style.display = 'none';
             }
         });
-    }            
+    }
     
     handleCheckboxSelection(input, checkboxList, isCheckField) {
         const selectedValues = input.value ? input.value.split('; ') : [];
         checkboxList.querySelectorAll('input:checked').forEach(checkbox => {
-            if (!selectedValues.includes(checkbox.value)) {
-                selectedValues.push(checkbox.value);
+            let value = checkbox.value;
+            if (isCheckField) {
+                value = value === 'Yes' ? '1' : '0';
+            }
+            if (!selectedValues.includes(value)) {
+                selectedValues.push(value);
             }
         });
     
         checkboxList.querySelectorAll('input:not(:checked)').forEach(checkbox => {
-            const index = selectedValues.indexOf(checkbox.value);
+            let value = checkbox.value;
+            if (isCheckField) {
+                value = value === 'Yes' ? '1' : '0';
+            }
+            const index = selectedValues.indexOf(value);
             if (index > -1) {
                 selectedValues.splice(index, 1);
             }
