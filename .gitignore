@@ -40,6 +40,6 @@ cypress/screenshots
 cypress/videos
 
 # dist
-dist
+
 
 .env
