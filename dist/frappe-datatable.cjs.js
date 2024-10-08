@@ -4176,7 +4176,9 @@ class ColumnManager {
         // Filtrer les options au fur et à mesure que l'utilisateur tape
         searchInput.addEventListener('input', () => {
             renderOptions(searchInput.value);
-        });
+            input.value = searchInput.value;
+            this.applyFilter(this.getAppliedFilters());
+        });              
     
         // Initialiser la liste avec toutes les options
         renderOptions();
@@ -4222,7 +4224,8 @@ class ColumnManager {
     }
     
     handleCheckboxSelection(input, checkboxList, isCheckField) {
-        const selectedValues = input.value ? input.value.split('; ') : [];
+        const selectedValues = [];
+
         checkboxList.querySelectorAll('input:checked').forEach(checkbox => {
             let value = checkbox.value;
             if (isCheckField) {
@@ -4246,7 +4249,7 @@ class ColumnManager {
     
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
-    
+
         // Appliquer les filtres
         this.applyFilter(this.getAppliedFilters());
     }         
@@ -5857,8 +5860,13 @@ function processFilter(column, keyword, doctype) {
                 return null;
             }
         } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
-            return [doctype, column.id, '=', keyword];
-        }
+            if (keyword.includes(';')) {
+                const keywordsArray = keyword.split(';').map(k => k.trim());
+                return [doctype, column.id, 'in', keywordsArray];
+            } else {
+                return [doctype, column.id, 'like', `%${keyword}%`];
+            }
+        }        
         return [doctype, column.id, 'like', `%${keyword}%`];
     } else {
         console.warn(`Colonne invalide à l'index ${colIndex}`);

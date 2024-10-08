@@ -65,8 +65,13 @@ function processFilter(column, keyword, doctype) {
                 return null;
             }
         } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
-            return [doctype, column.id, '=', keyword];
-        }
+            if (keyword.includes(';')) {
+                const keywordsArray = keyword.split(';').map(k => k.trim());
+                return [doctype, column.id, 'in', keywordsArray];
+            } else {
+                return [doctype, column.id, 'like', `%${keyword}%`];
+            }
+        }        
         return [doctype, column.id, 'like', `%${keyword}%`];
     } else {
         console.warn(`Colonne invalide à l'index ${colIndex}`);

@@ -680,7 +680,9 @@ export default class ColumnManager {
         // Filtrer les options au fur et à mesure que l'utilisateur tape
         searchInput.addEventListener('input', () => {
             renderOptions(searchInput.value);
-        });
+            input.value = searchInput.value;
+            this.applyFilter(this.getAppliedFilters());
+        });              
     
         // Initialiser la liste avec toutes les options
         renderOptions();
@@ -726,7 +728,8 @@ export default class ColumnManager {
     }
     
     handleCheckboxSelection(input, checkboxList, isCheckField) {
-        const selectedValues = input.value ? input.value.split('; ') : [];
+        const selectedValues = [];
+
         checkboxList.querySelectorAll('input:checked').forEach(checkbox => {
             let value = checkbox.value;
             if (isCheckField) {
@@ -750,7 +753,7 @@ export default class ColumnManager {
     
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
-    
+
         // Appliquer les filtres
         this.applyFilter(this.getAppliedFilters());
     }         
