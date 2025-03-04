@@ -43,6 +43,7 @@ export default class BodyRenderer {
     
         if (rows.length === 0) {
             this.bodyScrollable.innerHTML = this.getNoDataHTML();
+            this.footer.innerHTML = '';
             return;
         }
     
@@ -140,6 +141,7 @@ export default class BodyRenderer {
         this.rowmanager.highlightCheckedRows();
         this.cellmanager.selectAreaOnClusterChanged();
         this.cellmanager.focusCellOnClusterChanged();
+        this.bodyScrollable.style.removeProperty('overflow');
     }
 
     showToastMessage(message, hideAfter) {

@@ -20,10 +20,13 @@ export default class CellManager {
             'columnmanager',
             'rowmanager',
             'datamanager',
-            'keyboard'
+            'keyboard',
+            'footer'
         ]);
 
         this.bindEvents();
+        this.stickyRowWidth = 0;
+        this.stickyColWitdh = [];
     }
 
     bindEvents() {
@@ -171,6 +174,14 @@ export default class CellManager {
         $.on(this.bodyScrollable, 'mouseup', () => {
             mouseDown = false;
         });
+
+        if (this.options.showTotalRow) {
+            $.on(this.footer, 'click', '.dt-cell', (e) => {
+
+                this.focusCell($(e.delegatedTarget));
+            });
+
+        }
 
         const selectArea = (e) => {
             if (!mouseDown) return;
@@ -552,10 +563,18 @@ export default class CellManager {
             // copy only focusedCell
             const {
                 colIndex,
-                rowIndex
+                rowIndex,
+                isTotalRow
             } = $.data($cell1);
-            const cell = this.getCell(colIndex, rowIndex);
-            copyTextToClipboard(cell.content);
+            let copiedContent = '';
+            if (isTotalRow) {
+                let choosenFooterCell = this.$focusedCell;
+                copiedContent = choosenFooterCell.children[0].title;
+            } else {
+                const cell = this.getCell(colIndex, rowIndex);
+                copiedContent = cell.content;
+            }
+            copyTextToClipboard(copiedContent);
             return 1;
         }
         const cells = this.getCellsInRange($cell1, $cell2);
@@ -754,7 +773,7 @@ export default class CellManager {
     }
 
     scrollToCell($cell) {
-        if ($.inViewport($cell, this.bodyScrollable)) return false;
+        if ($.inViewport($cell, this.bodyScrollable) || $.inViewport($cell, this.footer)) return false;
 
         const {
             rowIndex
@@ -783,9 +802,39 @@ export default class CellManager {
             isTotalRow
         });
 
+        let styles = '';
+
         const row = this.datamanager.getRow(rowIndex);
 
         const isBodyCell = !(isHeader || isFilter || isTotalRow);
+
+        const serialNoColIndex = !this.options.checkboxColumn && this.options.serialNoColumn ? 0 : 1;
+
+        let sticky = false;
+
+        if (colIndex === 0 && this.options.checkboxColumn) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) this.stickyRowWidth = 33;
+            sticky = true;
+        } else if (colIndex === serialNoColIndex && this.options.serialNoColumn) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
+                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
+                this.stickyRowWidth += (cell.width || 32);
+            }
+            styles = `left:${this.stickyColWitdh[isBodyCell ? cell.column.id : cell.id]}px;`;
+            sticky = true;
+
+        } else if (cell.sticky) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
+                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
+                this.stickyRowWidth += (cell.width || 100);
+            }
+            styles = `left:${this.stickyColWitdh[cell.id]}px;`;
+            sticky = true;
+
+        } else if (isBodyCell && cell.column.sticky) {
+            styles = `left:${this.stickyColWitdh[cell.column.id]}px;`;
+            sticky = true;
+        }
 
         const className = [
             'dt-cell',
@@ -795,11 +844,12 @@ export default class CellManager {
             isHeader ? 'dt-cell--header' : '',
             isHeader ? `dt-cell--header-${colIndex}` : '',
             isFilter ? 'dt-cell--filter' : '',
-            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
+            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
+            sticky ? 'dt-sticky-col' : ''
         ].join(' ');
 
         return `
-            <div class="${className}" ${dataAttr} tabindex="0">
+            <div class="${className}" ${dataAttr} tabindex="0" style="${styles}">
                 ${this.getCellContent(cell)}
             </div>
         `;
