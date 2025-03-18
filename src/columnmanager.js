@@ -330,6 +330,10 @@ export default class ColumnManager {
             $.style(this.$filterRow, { display: '' });
         } else {
             $.style(this.$filterRow, { display: 'none' });
+            // Clear saved filters if filters are hidden and clear flag is true
+            if (flag === false) {
+                localStorage.removeItem('dt-filters-' + this.instance.name);
+            }
         }
 
         this.isFilterShown = showFilter;
@@ -346,7 +350,10 @@ export default class ColumnManager {
     bindFilter() {
         if (!this.options.inlineFilters) return;
         const handler = e => {
-            this.applyFilter(this.getAppliedFilters());
+            const filters = this.getAppliedFilters();
+            // Save filters to localStorage
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            this.applyFilter(filters);
         };
         $.on(this.header, 'keydown', '.dt-filter', debounce(handler, 300));
     }
@@ -467,8 +474,33 @@ export default class ColumnManager {
     }
 
     initializeFilters() {
+        // Try to restore filters from localStorage
+        let savedFilters = {};
+        try {
+            const savedFiltersStr = localStorage.getItem('dt-filters-' + this.instance.name);
+            if (savedFiltersStr) {
+                savedFilters = JSON.parse(savedFiltersStr);
+            }
+        } catch (e) {
+            console.error('Error loading saved filters:', e);
+        }
+        
         this.initializeDateFilters();
         this.initializeSelectFilters();
+        
+        // Apply saved filters after initialization
+        if (Object.keys(savedFilters).length > 0) {
+            // Set filter input values based on saved filters
+            $.each('.dt-filter', this.header).forEach(input => {
+                const colIndex = input.dataset.colIndex;
+                if (savedFilters[colIndex]) {
+                    input.value = savedFilters[colIndex];
+                }
+            });
+            
+            // Apply the filters
+            this.applyFilter(savedFilters);
+        }
     }
 
     initializeDateFilters() {
@@ -626,7 +658,12 @@ export default class ColumnManager {
             input.value = ''; // Réinitialiser l'input principal
             searchInput.value = ''; // Réinitialiser le champ de recherche
             renderOptions(); // Réafficher toutes les options
-            this.applyFilter(this.getAppliedFilters()); // Appliquer les filtres mis à jour
+            
+            // Mettre à jour les filtres dans le localStorage après réinitialisation
+            const filters = this.getAppliedFilters();
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            
+            this.applyFilter(filters); // Appliquer les filtres mis à jour
     
             // Remettre le focus sur le champ de recherche
             searchInput.focus();
@@ -681,7 +718,12 @@ export default class ColumnManager {
         searchInput.addEventListener('input', () => {
             renderOptions(searchInput.value);
             input.value = searchInput.value;
-            this.applyFilter(this.getAppliedFilters());
+            
+            // Mettre à jour les filtres dans le localStorage lorsqu'on tape
+            const filters = this.getAppliedFilters();
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            
+            this.applyFilter(filters);
         });              
     
         // Initialiser la liste avec toutes les options
@@ -754,7 +796,11 @@ export default class ColumnManager {
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
 
+        // Get current filters and save to localStorage
+        const filters = this.getAppliedFilters();
+        localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+        
         // Appliquer les filtres
-        this.applyFilter(this.getAppliedFilters());
+        this.applyFilter(filters);
     }         
 }

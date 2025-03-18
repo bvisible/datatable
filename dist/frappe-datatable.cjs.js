@@ -2592,10 +2592,13 @@ class CellManager {
             'columnmanager',
             'rowmanager',
             'datamanager',
-            'keyboard'
+            'keyboard',
+            'footer'
         ]);
 
         this.bindEvents();
+        this.stickyRowWidth = 0;
+        this.stickyColWitdh = [];
     }
 
     bindEvents() {
@@ -2743,6 +2746,14 @@ class CellManager {
         $.on(this.bodyScrollable, 'mouseup', () => {
             mouseDown = false;
         });
+
+        if (this.options.showTotalRow) {
+            $.on(this.footer, 'click', '.dt-cell', (e) => {
+
+                this.focusCell($(e.delegatedTarget));
+            });
+
+        }
 
         const selectArea = (e) => {
             if (!mouseDown) return;
@@ -3124,10 +3135,18 @@ class CellManager {
             // copy only focusedCell
             const {
                 colIndex,
-                rowIndex
+                rowIndex,
+                isTotalRow
             } = $.data($cell1);
-            const cell = this.getCell(colIndex, rowIndex);
-            copyTextToClipboard(cell.content);
+            let copiedContent = '';
+            if (isTotalRow) {
+                let choosenFooterCell = this.$focusedCell;
+                copiedContent = choosenFooterCell.children[0].title;
+            } else {
+                const cell = this.getCell(colIndex, rowIndex);
+                copiedContent = cell.content;
+            }
+            copyTextToClipboard(copiedContent);
             return 1;
         }
         const cells = this.getCellsInRange($cell1, $cell2);
@@ -3326,7 +3345,7 @@ class CellManager {
     }
 
     scrollToCell($cell) {
-        if ($.inViewport($cell, this.bodyScrollable)) return false;
+        if ($.inViewport($cell, this.bodyScrollable) || $.inViewport($cell, this.footer)) return false;
 
         const {
             rowIndex
@@ -3355,9 +3374,39 @@ class CellManager {
             isTotalRow
         });
 
+        let styles = '';
+
         const row = this.datamanager.getRow(rowIndex);
 
         const isBodyCell = !(isHeader || isFilter || isTotalRow);
+
+        const serialNoColIndex = !this.options.checkboxColumn && this.options.serialNoColumn ? 0 : 1;
+
+        let sticky = false;
+
+        if (colIndex === 0 && this.options.checkboxColumn) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) this.stickyRowWidth = 33;
+            sticky = true;
+        } else if (colIndex === serialNoColIndex && this.options.serialNoColumn) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
+                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
+                this.stickyRowWidth += (cell.width || 32);
+            }
+            styles = `left:${this.stickyColWitdh[isBodyCell ? cell.column.id : cell.id]}px;`;
+            sticky = true;
+
+        } else if (cell.sticky) {
+            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
+                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
+                this.stickyRowWidth += (cell.width || 100);
+            }
+            styles = `left:${this.stickyColWitdh[cell.id]}px;`;
+            sticky = true;
+
+        } else if (isBodyCell && cell.column.sticky) {
+            styles = `left:${this.stickyColWitdh[cell.column.id]}px;`;
+            sticky = true;
+        }
 
         const className = [
             'dt-cell',
@@ -3367,11 +3416,12 @@ class CellManager {
             isHeader ? 'dt-cell--header' : '',
             isHeader ? `dt-cell--header-${colIndex}` : '',
             isFilter ? 'dt-cell--filter' : '',
-            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
+            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
+            sticky ? 'dt-sticky-col' : ''
         ].join(' ');
 
         return `
-            <div class="${className}" ${dataAttr} tabindex="0">
+            <div class="${className}" ${dataAttr} tabindex="0" style="${styles}">
                 ${this.getCellContent(cell)}
             </div>
         `;
@@ -3826,6 +3876,10 @@ class ColumnManager {
             $.style(this.$filterRow, { display: '' });
         } else {
             $.style(this.$filterRow, { display: 'none' });
+            // Clear saved filters if filters are hidden and clear flag is true
+            if (flag === false) {
+                localStorage.removeItem('dt-filters-' + this.instance.name);
+            }
         }
 
         this.isFilterShown = showFilter;
@@ -3842,7 +3896,10 @@ class ColumnManager {
     bindFilter() {
         if (!this.options.inlineFilters) return;
         const handler = e => {
-            this.applyFilter(this.getAppliedFilters());
+            const filters = this.getAppliedFilters();
+            // Save filters to localStorage
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            this.applyFilter(filters);
         };
         $.on(this.header, 'keydown', '.dt-filter', debounce$1(handler, 300));
     }
@@ -3963,8 +4020,33 @@ class ColumnManager {
     }
 
     initializeFilters() {
+        // Try to restore filters from localStorage
+        let savedFilters = {};
+        try {
+            const savedFiltersStr = localStorage.getItem('dt-filters-' + this.instance.name);
+            if (savedFiltersStr) {
+                savedFilters = JSON.parse(savedFiltersStr);
+            }
+        } catch (e) {
+            console.error('Error loading saved filters:', e);
+        }
+        
         this.initializeDateFilters();
         this.initializeSelectFilters();
+        
+        // Apply saved filters after initialization
+        if (Object.keys(savedFilters).length > 0) {
+            // Set filter input values based on saved filters
+            $.each('.dt-filter', this.header).forEach(input => {
+                const colIndex = input.dataset.colIndex;
+                if (savedFilters[colIndex]) {
+                    input.value = savedFilters[colIndex];
+                }
+            });
+            
+            // Apply the filters
+            this.applyFilter(savedFilters);
+        }
     }
 
     initializeDateFilters() {
@@ -4122,7 +4204,12 @@ class ColumnManager {
             input.value = ''; // Réinitialiser l'input principal
             searchInput.value = ''; // Réinitialiser le champ de recherche
             renderOptions(); // Réafficher toutes les options
-            this.applyFilter(this.getAppliedFilters()); // Appliquer les filtres mis à jour
+            
+            // Mettre à jour les filtres dans le localStorage après réinitialisation
+            const filters = this.getAppliedFilters();
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            
+            this.applyFilter(filters); // Appliquer les filtres mis à jour
     
             // Remettre le focus sur le champ de recherche
             searchInput.focus();
@@ -4177,7 +4264,12 @@ class ColumnManager {
         searchInput.addEventListener('input', () => {
             renderOptions(searchInput.value);
             input.value = searchInput.value;
-            this.applyFilter(this.getAppliedFilters());
+            
+            // Mettre à jour les filtres dans le localStorage lorsqu'on tape
+            const filters = this.getAppliedFilters();
+            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            
+            this.applyFilter(filters);
         });              
     
         // Initialiser la liste avec toutes les options
@@ -4250,8 +4342,12 @@ class ColumnManager {
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
 
+        // Get current filters and save to localStorage
+        const filters = this.getAppliedFilters();
+        localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+        
         // Appliquer les filtres
-        this.applyFilter(this.getAppliedFilters());
+        this.applyFilter(filters);
     }         
 }
 
@@ -4629,7 +4725,7 @@ class RowManager {
 }
 
 var hyperlist = createCommonjsModule(function (module, exports) {
-(function(f){{module.exports=f();}})(function(){return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof commonjsRequire&&commonjsRequire;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t);}return n[i].exports}for(var u="function"==typeof commonjsRequire&&commonjsRequire,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(_dereq_,module,exports){
+(function(f){{module.exports=f();}})(function(){return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof commonjsRequire=="function"&&commonjsRequire;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r);}return n[o].exports}var i=typeof commonjsRequire=="function"&&commonjsRequire;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 
 // Default configuration.
 
@@ -4639,25 +4735,16 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var defaultConfig = {
   width: '100%',
   height: '100%'
-
-  // Check for valid number.
-};var isNumber = function isNumber(input) {
-  return Number(input) === Number(input);
 };
 
-// Add a class to an element.
-var addClass = 'classList' in document.documentElement ? function (element, className) {
-  element.classList.add(className);
-} : function (element, className) {
-  var oldClass = element.getAttribute('class') || '';
-  element.setAttribute('class', oldClass + ' ' + className);
+// Check for valid number.
+var isNumber = function isNumber(input) {
+  return Number(input) === Number(input);
 };
 
 /**
@@ -4742,8 +4829,7 @@ var HyperList = function () {
         return;
       }
 
-      var diff = lastRepaint ? scrollTop - lastRepaint : 0;
-      if (!lastRepaint || diff < 0 || diff > _this._averageHeight) {
+      if (!lastRepaint || Math.abs(scrollTop - lastRepaint) > _this._averageHeight) {
         var rendered = _this._renderChunk();
 
         _this._lastRepaint = scrollTop;
@@ -4765,7 +4851,7 @@ var HyperList = function () {
   }, {
     key: 'refresh',
     value: function refresh(element, userProvidedConfig) {
-      var _scrollerStyle;
+      var _this2 = this;
 
       Object.assign(this._config, defaultConfig, userProvidedConfig);
 
@@ -4807,6 +4893,7 @@ var HyperList = function () {
       }).forEach(function (prop) {
         var value = config[prop];
         var isValueNumber = isNumber(value);
+        var isValuePercent = isValueNumber ? false : value.slice(-1) === '%';
 
         if (value && typeof value !== 'string' && typeof value !== 'number') {
           var msg = 'Invalid optional `' + prop + '`, expected string or number';
@@ -4814,26 +4901,32 @@ var HyperList = function () {
         } else if (isValueNumber) {
           config[prop] = value + 'px';
         }
-      });
 
-      var isHoriz = Boolean(config.horizontal);
-      var value = config[isHoriz ? 'width' : 'height'];
+        if (prop !== 'height') {
+          return;
+        }
 
-      if (value) {
-        var isValueNumber = isNumber(value);
-        var isValuePercent = isValueNumber ? false : value.slice(-1) === '%';
         // Compute the containerHeight as number
         var numberValue = isValueNumber ? value : parseInt(value.replace(/px|%/, ''), 10);
-        var innerSize = window[isHoriz ? 'innerWidth' : 'innerHeight'];
 
         if (isValuePercent) {
-          this._containerSize = innerSize * numberValue / 100;
+          _this2._containerHeight = window.innerHeight * numberValue / 100;
         } else {
-          this._containerSize = isNumber(value) ? value : numberValue;
+          _this2._containerHeight = isNumber(value) ? value : numberValue;
         }
-      }
+      });
 
-      var scrollContainer = config.scrollContainer;
+      // Decorate the container element with styles that will match
+      // the user supplied configuration.
+      var elementStyle = {
+        width: '' + config.width,
+        height: '' + config.height,
+        overflow: 'auto',
+        position: 'relative'
+      };
+
+      HyperList.mergeStyle(element, elementStyle);
+
       var scrollerHeight = config.itemHeight * config.total;
       var maxElementHeight = this._maxElementHeight;
 
@@ -4841,25 +4934,12 @@ var HyperList = function () {
         console.warn(['HyperList: The maximum element height', maxElementHeight + 'px has', 'been exceeded; please reduce your item height.'].join(' '));
       }
 
-      // Decorate the container element with styles that will match
-      // the user supplied configuration.
-      var elementStyle = {
-        width: '' + config.width,
-        height: scrollContainer ? scrollerHeight + 'px' : '' + config.height,
-        overflow: scrollContainer ? 'none' : 'auto',
-        position: 'relative'
-      };
-
-      HyperList.mergeStyle(element, elementStyle);
-
-      if (scrollContainer) {
-        HyperList.mergeStyle(config.scrollContainer, { overflow: 'auto' });
-      }
-
-      var scrollerStyle = (_scrollerStyle = {
+      var scrollerStyle = {
         opacity: '0',
-        position: 'absolute'
-      }, _defineProperty(_scrollerStyle, isHoriz ? 'height' : 'width', '1px'), _defineProperty(_scrollerStyle, isHoriz ? 'width' : 'height', scrollerHeight + 'px'), _scrollerStyle);
+        position: 'absolute',
+        width: '1px',
+        height: scrollerHeight + 'px'
+      };
 
       HyperList.mergeStyle(scroller, scrollerStyle);
 
@@ -4867,10 +4947,6 @@ var HyperList = function () {
       if (!this._scroller) {
         element.appendChild(scroller);
       }
-
-      var padding = this._computeScrollPadding();
-      this._scrollPaddingBottom = padding.bottom;
-      this._scrollPaddingTop = padding.top;
 
       // Set the scroller instance.
       this._scroller = scroller;
@@ -4900,7 +4976,7 @@ var HyperList = function () {
         item = item.element;
 
         // The height isn't the same as predicted, compute positions again
-        if (height !== this._itemHeights[i]) {
+        if (height !== this._itemHeights) {
           this._itemHeights[i] = height;
           this._computePositions(i);
           this._scrollHeight = this._computeScrollHeight(i);
@@ -4913,13 +4989,15 @@ var HyperList = function () {
         throw new Error('Generator did not return a DOM Node for index: ' + i);
       }
 
-      addClass(item, config.rowClassName || 'vrow');
+      var oldClass = item.getAttribute('class') || '';
+      item.setAttribute('class', oldClass + ' ' + (config.rowClassName || 'vrow'));
 
-      var top = this._itemPositions[i] + this._scrollPaddingTop;
+      var top = this._itemPositions[i];
 
-      HyperList.mergeStyle(item, _defineProperty({
-        position: 'absolute'
-      }, config.horizontal ? 'left' : 'top', top + 'px'));
+      HyperList.mergeStyle(item, {
+        position: 'absolute',
+        top: top + 'px'
+      });
 
       return item;
     }
@@ -4932,7 +5010,7 @@ var HyperList = function () {
         return config.overrideScrollPosition();
       }
 
-      return this._element[config.horizontal ? 'scrollLeft' : 'scrollTop'];
+      return this._element.scrollTop;
     }
   }, {
     key: '_renderChunk',
@@ -4989,7 +5067,7 @@ var HyperList = function () {
   }, {
     key: '_computePositions',
     value: function _computePositions() {
-      var from = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1;
+      var from = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
 
       var config = this._config;
       var total = config.total;
@@ -5014,21 +5092,20 @@ var HyperList = function () {
   }, {
     key: '_computeScrollHeight',
     value: function _computeScrollHeight() {
-      var _HyperList$mergeStyle2,
-          _this2 = this;
+      var _this3 = this;
 
       var config = this._config;
-      var isHoriz = Boolean(config.horizontal);
       var total = config.total;
       var scrollHeight = this._itemHeights.reduce(function (a, b) {
         return a + b;
-      }, 0) + this._scrollPaddingBottom + this._scrollPaddingTop;
+      }, 0);
 
-      HyperList.mergeStyle(this._scroller, (_HyperList$mergeStyle2 = {
+      HyperList.mergeStyle(this._scroller, {
         opacity: 0,
         position: 'absolute',
-        top: '0px'
-      }, _defineProperty(_HyperList$mergeStyle2, isHoriz ? 'height' : 'width', '1px'), _defineProperty(_HyperList$mergeStyle2, isHoriz ? 'width' : 'height', scrollHeight + 'px'), _HyperList$mergeStyle2));
+        width: '1px',
+        height: scrollHeight + 'px'
+      });
 
       // Calculate the height median
       var sortedItemHeights = this._itemHeights.slice(0).sort(function (a, b) {
@@ -5037,11 +5114,9 @@ var HyperList = function () {
       var middle = Math.floor(total / 2);
       var averageHeight = total % 2 === 0 ? (sortedItemHeights[middle] + sortedItemHeights[middle - 1]) / 2 : sortedItemHeights[middle];
 
-      var clientProp = isHoriz ? 'clientWidth' : 'clientHeight';
-      var element = config.scrollContainer ? config.scrollContainer : this._element;
-      var containerHeight = element[clientProp] ? element[clientProp] : this._containerSize;
+      var containerHeight = this._element.clientHeight ? this._element.clientHeight : this._containerHeight;
       this._screenItemsLen = Math.ceil(containerHeight / averageHeight);
-      this._containerSize = containerHeight;
+      this._containerHeight = containerHeight;
 
       // Cache 3 times the number of items that fit in the container viewport.
       this._cachedItemsLen = Math.max(this._cachedItemsLen || 0, this._screenItemsLen * 3);
@@ -5049,50 +5124,11 @@ var HyperList = function () {
 
       if (config.reverse) {
         window.requestAnimationFrame(function () {
-          if (isHoriz) {
-            _this2._element.scrollLeft = scrollHeight;
-          } else {
-            _this2._element.scrollTop = scrollHeight;
-          }
+          _this3._element.scrollTop = scrollHeight;
         });
       }
 
       return scrollHeight;
-    }
-  }, {
-    key: '_computeScrollPadding',
-    value: function _computeScrollPadding() {
-      var config = this._config;
-      var isHoriz = Boolean(config.horizontal);
-      var isReverse = config.reverse;
-      var styles = window.getComputedStyle(this._element);
-
-      var padding = function padding(location) {
-        var cssValue = styles.getPropertyValue('padding-' + location);
-        return parseInt(cssValue, 10) || 0;
-      };
-
-      if (isHoriz && isReverse) {
-        return {
-          bottom: padding('left'),
-          top: padding('right')
-        };
-      } else if (isHoriz) {
-        return {
-          bottom: padding('right'),
-          top: padding('left')
-        };
-      } else if (isReverse) {
-        return {
-          bottom: padding('top'),
-          top: padding('bottom')
-        };
-      } else {
-        return {
-          bottom: padding('bottom'),
-          top: padding('top')
-        };
-      }
     }
   }, {
     key: '_getFrom',
@@ -5110,7 +5146,7 @@ var HyperList = function () {
     value: function _getReverseFrom(scrollTop) {
       var i = this._config.total - 1;
 
-      while (i > 0 && this._itemPositions[i] < scrollTop + this._containerSize) {
+      while (i > 0 && this._itemPositions[i] < scrollTop + this._containerHeight) {
         i--;
       }
 
@@ -5173,6 +5209,7 @@ class BodyRenderer {
     
         if (rows.length === 0) {
             this.bodyScrollable.innerHTML = this.getNoDataHTML();
+            this.footer.innerHTML = '';
             return;
         }
     
@@ -5270,6 +5307,7 @@ class BodyRenderer {
         this.rowmanager.highlightCheckedRows();
         this.cellmanager.selectAreaOnClusterChanged();
         this.cellmanager.focusCellOnClusterChanged();
+        this.bodyScrollable.style.removeProperty('overflow');
     }
 
     showToastMessage(message, hideAfter) {
@@ -5313,7 +5351,6 @@ class Style {
         this.styleEl = styleEl;
 
         this.bindResizeWindow();
-        this.bindScrollHeader();
     }
 
     get stylesheet() {
@@ -5327,28 +5364,6 @@ class Style {
         if (this.options.layout === 'fluid') {
             $.on(window, 'resize', this.onWindowResize);
         }
-    }
-
-    bindScrollHeader() {
-        this._settingHeaderPosition = false;
-
-        $.on(this.bodyScrollable, 'scroll', (e) => {
-            if (this._settingHeaderPosition) return;
-
-            this._settingHeaderPosition = true;
-
-            requestAnimationFrame(() => {
-                const left = -e.target.scrollLeft;
-
-                $.style(this.header, {
-                    transform: `translateX(${left}px)`
-                });
-                $.style(this.footer, {
-                    transform: `translateX(${left}px)`
-                });
-                this._settingHeaderPosition = false;
-            });
-        });
     }
 
     onWindowResize() {
@@ -6197,9 +6212,11 @@ class DataTable {
     prepareDom() {
         this.wrapper.innerHTML = `
             <div class="datatable" dir="${this.options.direction}">
-                <div class="dt-header"></div>
-                <div class="dt-scrollable"></div>
-                <div class="dt-footer"></div>
+                <div class="datatable-content">
+                    <div class="dt-header"></div>
+                    <div class="dt-scrollable"></div>
+                    <div class="dt-footer"></div>
+                </div>
                 <div class="dt-freeze">
                     <span class="dt-freeze__message">
                         ${this.options.freezeMessage}
@@ -6363,7 +6380,7 @@ var unpkg = "dist/frappe-datatable.min.js";
 var jsdelivr = "dist/frappe-datatable.min.js";
 var scripts = {"start":"yarn run dev","build":"rollup -c && NODE_ENV=production rollup -c","dev":"rollup -c -w","cy:server":"http-server -p 8989","cy:open":"cypress open","cy:run":"cypress run","test":"start-server-and-test cy:server http://localhost:8989 cy:run","test-local":"start-server-and-test cy:server http://localhost:8989 cy:open","travis-deploy-once":"travis-deploy-once","semantic-release":"semantic-release","lint":"eslint src","lint-and-build":"yarn lint && yarn build","commit":"npx git-cz"};
 var files = ["dist","src"];
-var devDependencies = {"@eslint/js":"^9.9.0","autoprefixer":"^9.0.0","chai":"3.5.0","cypress":"^9.2.0","cz-conventional-changelog":"^2.1.0","deepmerge":"^2.0.1","eslint":"^8.57.0","eslint-config-airbnb":"^16.1.0","eslint-config-airbnb-base":"^12.1.0","eslint-plugin-import":"^2.11.0","globals":"^15.9.0","http-server":"^0.11.1","mocha":"3.3.0","postcss-custom-properties":"^7.0.0","postcss-nested":"^3.0.0","rollup":"^0.59.4","rollup-plugin-commonjs":"^8.3.0","rollup-plugin-eslint":"^4.0.0","rollup-plugin-json":"^2.3.0","rollup-plugin-node-resolve":"^3.0.3","rollup-plugin-postcss":"^1.2.8","rollup-plugin-uglify-es":"^0.0.1","semantic-release":"^17.1.1","start-server-and-test":"^1.4.1","travis-deploy-once":"^5.0.1"};
+var devDependencies = {"autoprefixer":"^9.0.0","chai":"3.5.0","cypress":"^9.2.0","cz-conventional-changelog":"^2.1.0","deepmerge":"^2.0.1","eslint":"^5.0.1","eslint-config-airbnb":"^16.1.0","eslint-config-airbnb-base":"^12.1.0","eslint-plugin-import":"^2.11.0","http-server":"^0.11.1","mocha":"3.3.0","postcss-custom-properties":"^7.0.0","postcss-nested":"^3.0.0","rollup":"^0.59.4","rollup-plugin-commonjs":"^8.3.0","rollup-plugin-eslint":"^4.0.0","rollup-plugin-json":"^2.3.0","rollup-plugin-node-resolve":"^3.0.3","rollup-plugin-postcss":"^1.2.8","rollup-plugin-uglify-es":"^0.0.1","semantic-release":"^17.1.1","start-server-and-test":"^1.4.1","travis-deploy-once":"^5.0.1"};
 var repository = {"type":"git","url":"https://github.com/frappe/datatable.git"};
 var keywords = ["datatable","data","grid","table"];
 var author = "Faris Ansari";
