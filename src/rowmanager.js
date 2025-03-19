@@ -41,6 +41,8 @@ export default class RowManager {
 
         // map of checked rows
         this.checkMap = [];
+        // track last checked row for shift+click functionality
+        this.lastCheckedRowIndex = null;
 
         $.on(this.wrapper, 'click', '.dt-cell--col-0 [type="checkbox"]', (e, $checkbox) => {
             const $cell = $checkbox.closest('.dt-cell');
@@ -53,7 +55,20 @@ export default class RowManager {
             if (isHeader) {
                 this.checkAll(checked);
             } else {
-                this.checkRow(rowIndex, checked);
+                if (e.shiftKey && this.lastCheckedRowIndex !== null && this.lastCheckedRowIndex !== rowIndex) {
+                    // Shift+click: select all rows between last checked and current
+                    const start = Math.min(this.lastCheckedRowIndex, rowIndex);
+                    const end = Math.max(this.lastCheckedRowIndex, rowIndex);
+                    
+                    for (let i = start; i <= end; i++) {
+                        this.checkRow(i, checked);
+                    }
+                } else {
+                    this.checkRow(rowIndex, checked);
+                }
+                
+                // Update last checked row index
+                this.lastCheckedRowIndex = rowIndex;
             }
         });
     }
