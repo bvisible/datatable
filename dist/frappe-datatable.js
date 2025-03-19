@@ -5339,7 +5339,6 @@ var DataTable = (function (Sortable) {
 
         loadMoreRows() {
             this.isLoading = true;
-            console.log("loadMoreRows");
             cur_list.start = cur_list.start + cur_list.page_length;
             cur_list.page_length = cur_list.selected_page_count || 100;
             cur_list.refresh().then(() => {
