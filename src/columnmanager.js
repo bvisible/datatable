@@ -332,7 +332,9 @@ export default class ColumnManager {
             $.style(this.$filterRow, { display: 'none' });
             // Clear saved filters if filters are hidden and clear flag is true
             if (flag === false) {
-                localStorage.removeItem('dt-filters-' + this.instance.name);
+                const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+                const instanceName = this.instance.name || '';
+                localStorage.removeItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype);
             }
         }
 
@@ -351,11 +353,27 @@ export default class ColumnManager {
         if (!this.options.inlineFilters) return;
         const handler = e => {
             const filters = this.getAppliedFilters();
-            // Save filters to localStorage
-            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            // Save filters to localStorage with doctype from URL
+            const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+            const instanceName = this.instance.name || '';
+            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
             this.applyFilter(filters);
         };
         $.on(this.header, 'keydown', '.dt-filter', debounce(handler, 300));
+    }
+    
+    getDocTypeFromURL() {
+        const path = window.location.pathname;
+        if (path.includes('/app/')) {
+            // Format: /app/doctype or /app/doctype/name
+            const parts = path.split('/');
+            // Find the index after "/app/"
+            const appIndex = parts.findIndex(part => part === 'app');
+            if (appIndex !== -1 && parts.length > appIndex + 1) {
+                return parts[appIndex + 1]; // Return the doctype part
+            }
+        }
+        return null;
     }
 
     applyFilter(filters) {
@@ -474,10 +492,12 @@ export default class ColumnManager {
     }
 
     initializeFilters() {
-        // Try to restore filters from localStorage
+        // Try to restore filters from localStorage with doctype from URL
         let savedFilters = {};
         try {
-            const savedFiltersStr = localStorage.getItem('dt-filters-' + this.instance.name);
+            const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+            const instanceName = this.instance.name || '';
+            const savedFiltersStr = localStorage.getItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype);
             if (savedFiltersStr) {
                 savedFilters = JSON.parse(savedFiltersStr);
             }
@@ -661,7 +681,9 @@ export default class ColumnManager {
             
             // Mettre à jour les filtres dans le localStorage après réinitialisation
             const filters = this.getAppliedFilters();
-            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+            const instanceName = this.instance.name || '';
+            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
             
             this.applyFilter(filters); // Appliquer les filtres mis à jour
     
@@ -721,7 +743,9 @@ export default class ColumnManager {
             
             // Mettre à jour les filtres dans le localStorage lorsqu'on tape
             const filters = this.getAppliedFilters();
-            localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+            const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+            const instanceName = this.instance.name || '';
+            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
             
             this.applyFilter(filters);
         });              
@@ -796,9 +820,11 @@ export default class ColumnManager {
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
 
-        // Get current filters and save to localStorage
+        // Get current filters and save to localStorage with doctype from URL
         const filters = this.getAppliedFilters();
-        localStorage.setItem('dt-filters-' + this.instance.name, JSON.stringify(filters));
+        const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
+        const instanceName = this.instance.name || '';
+        localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
         
         // Appliquer les filtres
         this.applyFilter(filters);
