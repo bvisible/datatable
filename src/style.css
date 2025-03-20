@@ -33,15 +33,25 @@
     border-top: 2px solid var(--dt-border-color);
 }
 
-.datatable-content{
-    overflow-x: auto;
-    .dt-header{
+.datatable-content {
+    .dt-header {
         display: flex;
+        overflow-y: hidden;
+        overflow-x: hidden;
+
+        & > * { 
+            padding-right: 17px;
+            margin-right: 0px;
+            width: auto;
+        }
     }
 }
-
+  
 .dt-scrollable {
-    height: 40vw;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: auto;
+    width: 100%;
 
     &--highlight-all {
         background-color: var(--dt-selection-highlight-color);

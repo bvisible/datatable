@@ -5235,6 +5235,7 @@ class BodyRenderer {
 
     loadMoreRows() {
         this.isLoading = true;
+        console.log('loadMoreRows');
         cur_list.start = cur_list.start + cur_list.page_length;
         cur_list.page_length = cur_list.selected_page_count || 100;
         cur_list.refresh().then(() => {
@@ -5246,26 +5247,26 @@ class BodyRenderer {
 
     renderRows(rows) {
         this.visibleRows = rows;
-    
+
         if (rows.length === 0) {
             this.bodyScrollable.innerHTML = this.getNoDataHTML();
             this.footer.innerHTML = '';
             return;
         }
-    
+
         const computedStyle = getComputedStyle(this.bodyScrollable);
         const visibleColumns = this.datamanager.getColumns().filter(col => col.visible !== false);
-    
+
         let config = {
             width: computedStyle.width,
             height: computedStyle.height,
             itemHeight: this.options.cellHeight,
             total: rows.length,
-            generate: (index) => {    
+            generate: (index) => {
                 const el = document.createElement('div');
-                const row = rows[index];    
+                const row = rows[index];
                 if (row && Array.isArray(row)) {
-                    const rowHTML = this.rowmanager.getRowHTML(row, { rowIndex: index });    
+                    const rowHTML = this.rowmanager.getRowHTML(row, { rowIndex: index });
                     el.innerHTML = rowHTML;
                     return el.children[0];
                 }
@@ -5276,13 +5277,13 @@ class BodyRenderer {
                 this.restoreState();
             }
         };
-    
+
         if (!this.hyperlist) {
             this.hyperlist = new HyperList(this.bodyScrollable, config);
         } else {
             this.hyperlist.refresh(this.bodyScrollable, config);
         }
-    
+
         this.renderFooter();
     }
 
@@ -5290,6 +5291,14 @@ class BodyRenderer {
         const rows = this.datamanager.getRowsForView();
         this.renderRows(rows);
         this.instance.setDimensions();
+
+        const header = this.instance.header;
+        const bodyScrollable = this.instance.bodyScrollable;
+        if (header && bodyScrollable) {
+            bodyScrollable.addEventListener('scroll', () => {
+                header.scrollLeft = bodyScrollable.scrollLeft;
+            });
+        }
     }
 
     renderFooter() {

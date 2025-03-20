@@ -347,13 +347,6 @@ var DataTable = (function (Sortable) {
 
     var _trimmedEndIndex = trimmedEndIndex;
 
-    var _trimmedEndIndex$1 = /*#__PURE__*/Object.freeze({
-        default: _trimmedEndIndex,
-        __moduleExports: _trimmedEndIndex
-    });
-
-    var trimmedEndIndex$1 = ( _trimmedEndIndex$1 && _trimmedEndIndex ) || _trimmedEndIndex$1;
-
     /** Used to match leading whitespace. */
     var reTrimStart = /^\s+/;
 
@@ -366,7 +359,7 @@ var DataTable = (function (Sortable) {
      */
     function baseTrim(string) {
       return string
-        ? string.slice(0, trimmedEndIndex$1(string) + 1).replace(reTrimStart, '')
+        ? string.slice(0, _trimmedEndIndex(string) + 1).replace(reTrimStart, '')
         : string;
     }
 
@@ -421,11 +414,6 @@ var DataTable = (function (Sortable) {
 
     var _getRawTag = getRawTag;
 
-    var _getRawTag$1 = /*#__PURE__*/Object.freeze({
-        default: _getRawTag,
-        __moduleExports: _getRawTag
-    });
-
     /** Used for built-in method references. */
     var objectProto$1 = Object.prototype;
 
@@ -449,8 +437,6 @@ var DataTable = (function (Sortable) {
 
     var _objectToString = objectToString;
 
-    var getRawTag$1 = ( _getRawTag$1 && _getRawTag ) || _getRawTag$1;
-
     /** `Object#toString` result references. */
     var nullTag = '[object Null]',
         undefinedTag = '[object Undefined]';
@@ -470,11 +456,16 @@ var DataTable = (function (Sortable) {
         return value === undefined ? undefinedTag : nullTag;
       }
       return (symToStringTag$1 && symToStringTag$1 in Object(value))
-        ? getRawTag$1(value)
+        ? _getRawTag(value)
         : _objectToString(value);
     }
 
     var _baseGetTag = baseGetTag;
+
+    var _baseGetTag$1 = /*#__PURE__*/Object.freeze({
+        default: _baseGetTag,
+        __moduleExports: _baseGetTag
+    });
 
     /**
      * Checks if `value` is object-like. A value is object-like if it's not `null`
@@ -506,6 +497,8 @@ var DataTable = (function (Sortable) {
 
     var isObjectLike_1 = isObjectLike;
 
+    var baseGetTag$1 = ( _baseGetTag$1 && _baseGetTag ) || _baseGetTag$1;
+
     /** `Object#toString` result references. */
     var symbolTag = '[object Symbol]';
 
@@ -528,7 +521,7 @@ var DataTable = (function (Sortable) {
      */
     function isSymbol(value) {
       return typeof value == 'symbol' ||
-        (isObjectLike_1(value) && _baseGetTag(value) == symbolTag);
+        (isObjectLike_1(value) && baseGetTag$1(value) == symbolTag);
     }
 
     var isSymbol_1 = isSymbol;
@@ -593,6 +586,13 @@ var DataTable = (function (Sortable) {
     }
 
     var toNumber_1 = toNumber;
+
+    var toNumber$1 = /*#__PURE__*/Object.freeze({
+        default: toNumber_1,
+        __moduleExports: toNumber_1
+    });
+
+    var toNumber$2 = ( toNumber$1 && toNumber_1 ) || toNumber$1;
 
     /** Error message constants. */
     var FUNC_ERROR_TEXT = 'Expected a function';
@@ -670,11 +670,11 @@ var DataTable = (function (Sortable) {
       if (typeof func != 'function') {
         throw new TypeError(FUNC_ERROR_TEXT);
       }
-      wait = toNumber_1(wait) || 0;
+      wait = toNumber$2(wait) || 0;
       if (isObject_1(options)) {
         leading = !!options.leading;
         maxing = 'maxWait' in options;
-        maxWait = maxing ? nativeMax(toNumber_1(options.maxWait) || 0, wait) : maxWait;
+        maxWait = maxing ? nativeMax(toNumber$2(options.maxWait) || 0, wait) : maxWait;
         trailing = 'trailing' in options ? !!options.trailing : trailing;
       }
 
@@ -878,7 +878,7 @@ var DataTable = (function (Sortable) {
       }
       // The use of `Object#toString` avoids issues with the `typeof` operator
       // in Safari 9 which returns 'object' for typed arrays and other constructors.
-      var tag = _baseGetTag(value);
+      var tag = baseGetTag$1(value);
       return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
     }
 
@@ -889,16 +889,9 @@ var DataTable = (function (Sortable) {
 
     var _coreJsData = coreJsData;
 
-    var _coreJsData$1 = /*#__PURE__*/Object.freeze({
-        default: _coreJsData,
-        __moduleExports: _coreJsData
-    });
-
-    var coreJsData$1 = ( _coreJsData$1 && _coreJsData ) || _coreJsData$1;
-
     /** Used to detect methods masquerading as native. */
     var maskSrcKey = (function() {
-      var uid = /[^.]+$/.exec(coreJsData$1 && coreJsData$1.keys && coreJsData$1.keys.IE_PROTO || '');
+      var uid = /[^.]+$/.exec(_coreJsData && _coreJsData.keys && _coreJsData.keys.IE_PROTO || '');
       return uid ? ('Symbol(src)_1.' + uid) : '';
     }());
 
@@ -914,11 +907,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _isMasked = isMasked;
-
-    var _isMasked$1 = /*#__PURE__*/Object.freeze({
-        default: _isMasked,
-        __moduleExports: _isMasked
-    });
 
     /** Used for built-in method references. */
     var funcProto = Function.prototype;
@@ -947,7 +935,12 @@ var DataTable = (function (Sortable) {
 
     var _toSource = toSource;
 
-    var isMasked$1 = ( _isMasked$1 && _isMasked ) || _isMasked$1;
+    var _toSource$1 = /*#__PURE__*/Object.freeze({
+        default: _toSource,
+        __moduleExports: _toSource
+    });
+
+    var toSource$1 = ( _toSource$1 && _toSource ) || _toSource$1;
 
     /**
      * Used to match `RegExp`
@@ -983,11 +976,11 @@ var DataTable = (function (Sortable) {
      *  else `false`.
      */
     function baseIsNative(value) {
-      if (!isObject_1(value) || isMasked$1(value)) {
+      if (!isObject_1(value) || _isMasked(value)) {
         return false;
       }
       var pattern = isFunction_1(value) ? reIsNative : reIsHostCtor;
-      return pattern.test(_toSource(value));
+      return pattern.test(toSource$1(value));
     }
 
     var _baseIsNative = baseIsNative;
@@ -1021,24 +1014,10 @@ var DataTable = (function (Sortable) {
 
     var _getNative = getNative;
 
-    var _getNative$1 = /*#__PURE__*/Object.freeze({
-        default: _getNative,
-        __moduleExports: _getNative
-    });
-
-    var getNative$1 = ( _getNative$1 && _getNative ) || _getNative$1;
-
     /* Built-in method references that are verified to be native. */
-    var nativeCreate = getNative$1(Object, 'create');
+    var nativeCreate = _getNative(Object, 'create');
 
     var _nativeCreate = nativeCreate;
-
-    var _nativeCreate$1 = /*#__PURE__*/Object.freeze({
-        default: _nativeCreate,
-        __moduleExports: _nativeCreate
-    });
-
-    var nativeCreate$1 = ( _nativeCreate$1 && _nativeCreate ) || _nativeCreate$1;
 
     /**
      * Removes all key-value entries from the hash.
@@ -1048,7 +1027,7 @@ var DataTable = (function (Sortable) {
      * @memberOf Hash
      */
     function hashClear() {
-      this.__data__ = nativeCreate$1 ? nativeCreate$1(null) : {};
+      this.__data__ = _nativeCreate ? _nativeCreate(null) : {};
       this.size = 0;
     }
 
@@ -1072,11 +1051,6 @@ var DataTable = (function (Sortable) {
 
     var _hashDelete = hashDelete;
 
-    var _hashDelete$1 = /*#__PURE__*/Object.freeze({
-        default: _hashDelete,
-        __moduleExports: _hashDelete
-    });
-
     /** Used to stand-in for `undefined` hash values. */
     var HASH_UNDEFINED = '__lodash_hash_undefined__';
 
@@ -1097,7 +1071,7 @@ var DataTable = (function (Sortable) {
      */
     function hashGet(key) {
       var data = this.__data__;
-      if (nativeCreate$1) {
+      if (_nativeCreate) {
         var result = data[key];
         return result === HASH_UNDEFINED ? undefined : result;
       }
@@ -1105,6 +1079,11 @@ var DataTable = (function (Sortable) {
     }
 
     var _hashGet = hashGet;
+
+    var _hashGet$1 = /*#__PURE__*/Object.freeze({
+        default: _hashGet,
+        __moduleExports: _hashGet
+    });
 
     /** Used for built-in method references. */
     var objectProto$4 = Object.prototype;
@@ -1123,10 +1102,15 @@ var DataTable = (function (Sortable) {
      */
     function hashHas(key) {
       var data = this.__data__;
-      return nativeCreate$1 ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
+      return _nativeCreate ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
     }
 
     var _hashHas = hashHas;
+
+    var _hashHas$1 = /*#__PURE__*/Object.freeze({
+        default: _hashHas,
+        __moduleExports: _hashHas
+    });
 
     /** Used to stand-in for `undefined` hash values. */
     var HASH_UNDEFINED$1 = '__lodash_hash_undefined__';
@@ -1144,13 +1128,22 @@ var DataTable = (function (Sortable) {
     function hashSet(key, value) {
       var data = this.__data__;
       this.size += this.has(key) ? 0 : 1;
-      data[key] = (nativeCreate$1 && value === undefined) ? HASH_UNDEFINED$1 : value;
+      data[key] = (_nativeCreate && value === undefined) ? HASH_UNDEFINED$1 : value;
       return this;
     }
 
     var _hashSet = hashSet;
 
-    var hashDelete$1 = ( _hashDelete$1 && _hashDelete ) || _hashDelete$1;
+    var _hashSet$1 = /*#__PURE__*/Object.freeze({
+        default: _hashSet,
+        __moduleExports: _hashSet
+    });
+
+    var hashGet$1 = ( _hashGet$1 && _hashGet ) || _hashGet$1;
+
+    var hashHas$1 = ( _hashHas$1 && _hashHas ) || _hashHas$1;
+
+    var hashSet$1 = ( _hashSet$1 && _hashSet ) || _hashSet$1;
 
     /**
      * Creates a hash object.
@@ -1172,10 +1165,10 @@ var DataTable = (function (Sortable) {
 
     // Add methods to `Hash`.
     Hash.prototype.clear = _hashClear;
-    Hash.prototype['delete'] = hashDelete$1;
-    Hash.prototype.get = _hashGet;
-    Hash.prototype.has = _hashHas;
-    Hash.prototype.set = _hashSet;
+    Hash.prototype['delete'] = _hashDelete;
+    Hash.prototype.get = hashGet$1;
+    Hash.prototype.has = hashHas$1;
+    Hash.prototype.set = hashSet$1;
 
     var _Hash = Hash;
 
@@ -1192,6 +1185,11 @@ var DataTable = (function (Sortable) {
     }
 
     var _listCacheClear = listCacheClear;
+
+    var _listCacheClear$1 = /*#__PURE__*/Object.freeze({
+        default: _listCacheClear,
+        __moduleExports: _listCacheClear
+    });
 
     /**
      * Performs a
@@ -1231,6 +1229,13 @@ var DataTable = (function (Sortable) {
 
     var eq_1 = eq;
 
+    var eq$1 = /*#__PURE__*/Object.freeze({
+        default: eq_1,
+        __moduleExports: eq_1
+    });
+
+    var eq$2 = ( eq$1 && eq_1 ) || eq$1;
+
     /**
      * Gets the index at which the `key` is found in `array` of key-value pairs.
      *
@@ -1242,7 +1247,7 @@ var DataTable = (function (Sortable) {
     function assocIndexOf(array, key) {
       var length = array.length;
       while (length--) {
-        if (eq_1(array[length][0], key)) {
+        if (eq$2(array[length][0], key)) {
           return length;
         }
       }
@@ -1250,13 +1255,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _assocIndexOf = assocIndexOf;
-
-    var _assocIndexOf$1 = /*#__PURE__*/Object.freeze({
-        default: _assocIndexOf,
-        __moduleExports: _assocIndexOf
-    });
-
-    var assocIndexOf$1 = ( _assocIndexOf$1 && _assocIndexOf ) || _assocIndexOf$1;
 
     /** Used for built-in method references. */
     var arrayProto = Array.prototype;
@@ -1275,7 +1273,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheDelete(key) {
       var data = this.__data__,
-          index = assocIndexOf$1(data, key);
+          index = _assocIndexOf(data, key);
 
       if (index < 0) {
         return false;
@@ -1292,6 +1290,11 @@ var DataTable = (function (Sortable) {
 
     var _listCacheDelete = listCacheDelete;
 
+    var _listCacheDelete$1 = /*#__PURE__*/Object.freeze({
+        default: _listCacheDelete,
+        __moduleExports: _listCacheDelete
+    });
+
     /**
      * Gets the list cache value for `key`.
      *
@@ -1303,7 +1306,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheGet(key) {
       var data = this.__data__,
-          index = assocIndexOf$1(data, key);
+          index = _assocIndexOf(data, key);
 
       return index < 0 ? undefined : data[index][1];
     }
@@ -1320,7 +1323,7 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
      */
     function listCacheHas(key) {
-      return assocIndexOf$1(this.__data__, key) > -1;
+      return _assocIndexOf(this.__data__, key) > -1;
     }
 
     var _listCacheHas = listCacheHas;
@@ -1337,7 +1340,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheSet(key, value) {
       var data = this.__data__,
-          index = assocIndexOf$1(data, key);
+          index = _assocIndexOf(data, key);
 
       if (index < 0) {
         ++this.size;
@@ -1349,6 +1352,10 @@ var DataTable = (function (Sortable) {
     }
 
     var _listCacheSet = listCacheSet;
+
+    var listCacheClear$1 = ( _listCacheClear$1 && _listCacheClear ) || _listCacheClear$1;
+
+    var listCacheDelete$1 = ( _listCacheDelete$1 && _listCacheDelete ) || _listCacheDelete$1;
 
     /**
      * Creates an list cache object.
@@ -1369,25 +1376,18 @@ var DataTable = (function (Sortable) {
     }
 
     // Add methods to `ListCache`.
-    ListCache.prototype.clear = _listCacheClear;
-    ListCache.prototype['delete'] = _listCacheDelete;
+    ListCache.prototype.clear = listCacheClear$1;
+    ListCache.prototype['delete'] = listCacheDelete$1;
     ListCache.prototype.get = _listCacheGet;
     ListCache.prototype.has = _listCacheHas;
     ListCache.prototype.set = _listCacheSet;
 
     var _ListCache = ListCache;
 
-    var _ListCache$1 = /*#__PURE__*/Object.freeze({
-        default: _ListCache,
-        __moduleExports: _ListCache
-    });
-
     /* Built-in method references that are verified to be native. */
-    var Map = getNative$1(_root, 'Map');
+    var Map = _getNative(_root, 'Map');
 
     var _Map = Map;
-
-    var ListCache$1 = ( _ListCache$1 && _ListCache ) || _ListCache$1;
 
     /**
      * Removes all key-value entries from the map.
@@ -1400,7 +1400,7 @@ var DataTable = (function (Sortable) {
       this.size = 0;
       this.__data__ = {
         'hash': new _Hash,
-        'map': new (_Map || ListCache$1),
+        'map': new (_Map || _ListCache),
         'string': new _Hash
       };
     }
@@ -1423,13 +1423,6 @@ var DataTable = (function (Sortable) {
 
     var _isKeyable = isKeyable;
 
-    var _isKeyable$1 = /*#__PURE__*/Object.freeze({
-        default: _isKeyable,
-        __moduleExports: _isKeyable
-    });
-
-    var isKeyable$1 = ( _isKeyable$1 && _isKeyable ) || _isKeyable$1;
-
     /**
      * Gets the data for `map`.
      *
@@ -1440,7 +1433,7 @@ var DataTable = (function (Sortable) {
      */
     function getMapData(map, key) {
       var data = map.__data__;
-      return isKeyable$1(key)
+      return _isKeyable(key)
         ? data[typeof key == 'string' ? 'string' : 'hash']
         : data.map;
     }
@@ -1479,11 +1472,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheGet = mapCacheGet;
 
-    var _mapCacheGet$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheGet,
-        __moduleExports: _mapCacheGet
-    });
-
     /**
      * Checks if a map value for `key` exists.
      *
@@ -1520,8 +1508,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheSet = mapCacheSet;
 
-    var mapCacheGet$1 = ( _mapCacheGet$1 && _mapCacheGet ) || _mapCacheGet$1;
-
     /**
      * Creates a map cache object to store key-value pairs.
      *
@@ -1543,7 +1529,7 @@ var DataTable = (function (Sortable) {
     // Add methods to `MapCache`.
     MapCache.prototype.clear = _mapCacheClear;
     MapCache.prototype['delete'] = _mapCacheDelete;
-    MapCache.prototype.get = mapCacheGet$1;
+    MapCache.prototype.get = _mapCacheGet;
     MapCache.prototype.has = _mapCacheHas;
     MapCache.prototype.set = _mapCacheSet;
 
@@ -1569,11 +1555,6 @@ var DataTable = (function (Sortable) {
 
     var _setCacheAdd = setCacheAdd;
 
-    var _setCacheAdd$1 = /*#__PURE__*/Object.freeze({
-        default: _setCacheAdd,
-        __moduleExports: _setCacheAdd
-    });
-
     /**
      * Checks if `value` is in the array cache.
      *
@@ -1588,8 +1569,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _setCacheHas = setCacheHas;
-
-    var setCacheAdd$1 = ( _setCacheAdd$1 && _setCacheAdd ) || _setCacheAdd$1;
 
     /**
      *
@@ -1610,7 +1589,7 @@ var DataTable = (function (Sortable) {
     }
 
     // Add methods to `SetCache`.
-    SetCache.prototype.add = SetCache.prototype.push = setCacheAdd$1;
+    SetCache.prototype.add = SetCache.prototype.push = _setCacheAdd;
     SetCache.prototype.has = _setCacheHas;
 
     var _SetCache = SetCache;
@@ -1653,11 +1632,6 @@ var DataTable = (function (Sortable) {
 
     var _baseIsNaN = baseIsNaN;
 
-    var _baseIsNaN$1 = /*#__PURE__*/Object.freeze({
-        default: _baseIsNaN,
-        __moduleExports: _baseIsNaN
-    });
-
     /**
      * A specialized version of `_.indexOf` which performs strict equality
      * comparisons of values, i.e. `===`.
@@ -1682,8 +1656,6 @@ var DataTable = (function (Sortable) {
 
     var _strictIndexOf = strictIndexOf;
 
-    var baseIsNaN$1 = ( _baseIsNaN$1 && _baseIsNaN ) || _baseIsNaN$1;
-
     /**
      * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
      *
@@ -1696,7 +1668,7 @@ var DataTable = (function (Sortable) {
     function baseIndexOf(array, value, fromIndex) {
       return value === value
         ? _strictIndexOf(array, value, fromIndex)
-        : _baseFindIndex(array, baseIsNaN$1, fromIndex);
+        : _baseFindIndex(array, _baseIsNaN, fromIndex);
     }
 
     var _baseIndexOf = baseIndexOf;
@@ -1716,6 +1688,11 @@ var DataTable = (function (Sortable) {
     }
 
     var _arrayIncludes = arrayIncludes;
+
+    var _arrayIncludes$1 = /*#__PURE__*/Object.freeze({
+        default: _arrayIncludes,
+        __moduleExports: _arrayIncludes
+    });
 
     /**
      * This function is like `arrayIncludes` except that it accepts a comparator.
@@ -1755,7 +1732,7 @@ var DataTable = (function (Sortable) {
     var _cacheHas = cacheHas;
 
     /* Built-in method references that are verified to be native. */
-    var Set = getNative$1(_root, 'Set');
+    var Set = _getNative(_root, 'Set');
 
     var _Set = Set;
 
@@ -1777,11 +1754,6 @@ var DataTable = (function (Sortable) {
 
     var noop_1 = noop;
 
-    var noop$1 = /*#__PURE__*/Object.freeze({
-        default: noop_1,
-        __moduleExports: noop_1
-    });
-
     /**
      * Converts `set` to an array of its values.
      *
@@ -1801,8 +1773,6 @@ var DataTable = (function (Sortable) {
 
     var _setToArray = setToArray;
 
-    var noop$2 = ( noop$1 && noop_1 ) || noop$1;
-
     /** Used as references for various `Number` constants. */
     var INFINITY = 1 / 0;
 
@@ -1813,11 +1783,20 @@ var DataTable = (function (Sortable) {
      * @param {Array} values The values to add to the set.
      * @returns {Object} Returns the new set.
      */
-    var createSet = !(_Set && (1 / _setToArray(new _Set([,-0]))[1]) == INFINITY) ? noop$2 : function(values) {
+    var createSet = !(_Set && (1 / _setToArray(new _Set([,-0]))[1]) == INFINITY) ? noop_1 : function(values) {
       return new _Set(values);
     };
 
     var _createSet = createSet;
+
+    var _createSet$1 = /*#__PURE__*/Object.freeze({
+        default: _createSet,
+        __moduleExports: _createSet
+    });
+
+    var arrayIncludes$1 = ( _arrayIncludes$1 && _arrayIncludes ) || _arrayIncludes$1;
+
+    var createSet$1 = ( _createSet$1 && _createSet ) || _createSet$1;
 
     /** Used as the size to enable large array optimizations. */
     var LARGE_ARRAY_SIZE = 200;
@@ -1833,7 +1812,7 @@ var DataTable = (function (Sortable) {
      */
     function baseUniq(array, iteratee, comparator) {
       var index = -1,
-          includes = _arrayIncludes,
+          includes = arrayIncludes$1,
           length = array.length,
           isCommon = true,
           result = [],
@@ -1844,7 +1823,7 @@ var DataTable = (function (Sortable) {
         includes = _arrayIncludesWith;
       }
       else if (length >= LARGE_ARRAY_SIZE) {
-        var set = iteratee ? null : _createSet(array);
+        var set = iteratee ? null : createSet$1(array);
         if (set) {
           return _setToArray(set);
         }
@@ -5339,6 +5318,7 @@ var DataTable = (function (Sortable) {
 
         loadMoreRows() {
             this.isLoading = true;
+            console.log('loadMoreRows');
             cur_list.start = cur_list.start + cur_list.page_length;
             cur_list.page_length = cur_list.selected_page_count || 100;
             cur_list.refresh().then(() => {
@@ -5350,26 +5330,26 @@ var DataTable = (function (Sortable) {
 
         renderRows(rows) {
             this.visibleRows = rows;
-        
+
             if (rows.length === 0) {
                 this.bodyScrollable.innerHTML = this.getNoDataHTML();
                 this.footer.innerHTML = '';
                 return;
             }
-        
+
             const computedStyle = getComputedStyle(this.bodyScrollable);
             const visibleColumns = this.datamanager.getColumns().filter(col => col.visible !== false);
-        
+
             let config = {
                 width: computedStyle.width,
                 height: computedStyle.height,
                 itemHeight: this.options.cellHeight,
                 total: rows.length,
-                generate: (index) => {    
+                generate: (index) => {
                     const el = document.createElement('div');
-                    const row = rows[index];    
+                    const row = rows[index];
                     if (row && Array.isArray(row)) {
-                        const rowHTML = this.rowmanager.getRowHTML(row, { rowIndex: index });    
+                        const rowHTML = this.rowmanager.getRowHTML(row, { rowIndex: index });
                         el.innerHTML = rowHTML;
                         return el.children[0];
                     }
@@ -5380,13 +5360,13 @@ var DataTable = (function (Sortable) {
                     this.restoreState();
                 }
             };
-        
+
             if (!this.hyperlist) {
                 this.hyperlist = new HyperList(this.bodyScrollable, config);
             } else {
                 this.hyperlist.refresh(this.bodyScrollable, config);
             }
-        
+
             this.renderFooter();
         }
 
@@ -5394,6 +5374,14 @@ var DataTable = (function (Sortable) {
             const rows = this.datamanager.getRowsForView();
             this.renderRows(rows);
             this.instance.setDimensions();
+
+            const header = this.instance.header;
+            const bodyScrollable = this.instance.bodyScrollable;
+            if (header && bodyScrollable) {
+                bodyScrollable.addEventListener('scroll', () => {
+                    header.scrollLeft = bodyScrollable.scrollLeft;
+                });
+            }
         }
 
         renderFooter() {
