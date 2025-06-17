@@ -440,15 +440,15 @@ export default class DataManager {
             columns: this.columns,
             data: this
         })
-        .then(filteredRows => {
-            this.rows = filteredRows;
-            this._filteredRows = filteredRows.map((row, index) => index);
-            this.rowViewOrder = this._filteredRows;
-            return {
-                rowsToShow: this._filteredRows,
-                rowsToHide: []
-            };
-        });
+            .then(filteredRows => {
+                this.rows = filteredRows;
+                this._filteredRows = filteredRows.map((row, index) => index);
+                this.rowViewOrder = this._filteredRows;
+                return {
+                    rowsToShow: this._filteredRows,
+                    rowsToHide: []
+                };
+            });
     }
 
     getFilteredRowIndices() {

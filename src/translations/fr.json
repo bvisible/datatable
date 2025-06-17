@@ -11,5 +11,25 @@
 	"{count} rows selected": {
 		"1": "{count} ligne sélectionnée",
 		"default": "{count} lignes sélectionnées"
-	}
+	},
+	"Open": "Ouvert",
+	"Closed": "Fermé",
+	"Pending": "En attente",
+	"Draft": "Brouillon",
+	"Submitted": "Soumis",
+	"Cancelled": "Annulé",
+	"Completed": "Terminé",
+	"Active": "Actif",
+	"Inactive": "Inactif",
+	"Paid": "Payé",
+	"Unpaid": "Impayé",
+	"Approved": "Approuvé",
+	"Rejected": "Rejeté",
+	"In Progress": "En cours",
+	"On Hold": "En pause",
+	"Yes": "Oui",
+	"No": "Non",
+	"Search...": "Rechercher...",
+	"Show more": "Afficher plus",
+	"Showing": "Affichage"
 }

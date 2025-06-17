@@ -2034,7 +2034,9 @@ class DataManager {
                 dropdown: false,
                 width: 60
             };
-
+            if (this.options.data.length > 1000) {
+                cell.resizable = true;
+            }
             this.columns.push(cell);
         }
     }
@@ -2162,14 +2164,19 @@ class DataManager {
     }
 
     prepareRow(row, meta) {
-        const baseRowCell = {
-            rowIndex: meta.rowIndex,
-            indent: meta.indent
-        };
-
         row = row
             .map((cell, i) => this.prepareCell(cell, i))
-            .map(cell => Object.assign({}, baseRowCell, cell));
+            .map(cell => {
+                // Following code is equivalent but avoids memory allocation and copying.
+                // return Object.assign({rowIndex: meta.rowIndex, indent: meta.indent}, cell)
+                if (cell.rowIndex == null) {
+                    cell.rowIndex = meta.rowIndex;
+                }
+                if (cell.indent == null) {
+                    cell.indent = meta.indent;
+                }
+                return cell;
+            });
 
         // monkey patched in array object
         row.meta = meta;
@@ -2389,15 +2396,15 @@ class DataManager {
             columns: this.columns,
             data: this
         })
-        .then(filteredRows => {
-            this.rows = filteredRows;
-            this._filteredRows = filteredRows.map((row, index) => index);
-            this.rowViewOrder = this._filteredRows;
-            return {
-                rowsToShow: this._filteredRows,
-                rowsToHide: []
-            };
-        });
+            .then(filteredRows => {
+                this.rows = filteredRows;
+                this._filteredRows = filteredRows.map((row, index) => index);
+                this.rowViewOrder = this._filteredRows;
+                return {
+                    rowsToShow: this._filteredRows,
+                    rowsToHide: []
+                };
+            });
     }
 
     getFilteredRowIndices() {
@@ -2597,8 +2604,6 @@ class CellManager {
         ]);
 
         this.bindEvents();
-        this.stickyRowWidth = 0;
-        this.stickyColWitdh = [];
     }
 
     bindEvents() {
@@ -2907,7 +2912,6 @@ class CellManager {
 
     _selectArea($cell1, $cell2) {
         if ($cell1 === $cell2) return false;
-
         const cells = this.getCellsInRange($cell1, $cell2);
         if (!cells) return false;
 
@@ -2934,9 +2938,17 @@ class CellManager {
             const cell2 = $.data($cell2);
 
             colIndex1 = +cell1.colIndex;
-            rowIndex1 = +cell1.rowIndex;
             colIndex2 = +cell2.colIndex;
-            rowIndex2 = +cell2.rowIndex;
+
+            if (this.columnmanager.sortState) {
+                this.sortedColumn = true;
+                rowIndex1 = this.datamanager.rowViewOrder.indexOf(parseInt(cell1.rowIndex, 10));
+                rowIndex2 = this.datamanager.rowViewOrder.indexOf(parseInt(cell2.rowIndex, 10));
+            } else {
+                rowIndex1 = +cell1.rowIndex;
+                rowIndex2 = +cell2.rowIndex;
+            }
+
         }
 
         if (rowIndex1 > rowIndex2) {
@@ -2968,7 +2980,11 @@ class CellManager {
             }
             colIndex = colIndex1;
         });
-
+        if (this.columnmanager.sortState) {
+            cells.forEach(selectedCells => {
+                selectedCells[1] = this.datamanager.rowViewOrder[selectedCells[1]];
+            });
+        }
         return cells;
     }
 
@@ -3374,39 +3390,9 @@ class CellManager {
             isTotalRow
         });
 
-        let styles = '';
-
         const row = this.datamanager.getRow(rowIndex);
 
         const isBodyCell = !(isHeader || isFilter || isTotalRow);
-
-        const serialNoColIndex = !this.options.checkboxColumn && this.options.serialNoColumn ? 0 : 1;
-
-        let sticky = false;
-
-        if (colIndex === 0 && this.options.checkboxColumn) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) this.stickyRowWidth = 33;
-            sticky = true;
-        } else if (colIndex === serialNoColIndex && this.options.serialNoColumn) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
-                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
-                this.stickyRowWidth += (cell.width || 32);
-            }
-            styles = `left:${this.stickyColWitdh[isBodyCell ? cell.column.id : cell.id]}px;`;
-            sticky = true;
-
-        } else if (cell.sticky) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
-                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
-                this.stickyRowWidth += (cell.width || 100);
-            }
-            styles = `left:${this.stickyColWitdh[cell.id]}px;`;
-            sticky = true;
-
-        } else if (isBodyCell && cell.column.sticky) {
-            styles = `left:${this.stickyColWitdh[cell.column.id]}px;`;
-            sticky = true;
-        }
 
         const className = [
             'dt-cell',
@@ -3416,12 +3402,11 @@ class CellManager {
             isHeader ? 'dt-cell--header' : '',
             isHeader ? `dt-cell--header-${colIndex}` : '',
             isFilter ? 'dt-cell--filter' : '',
-            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
-            sticky ? 'dt-sticky-col' : ''
+            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
         ].join(' ');
 
         return `
-            <div class="${className}" ${dataAttr} tabindex="0" style="${styles}">
+            <div class="${className}" ${dataAttr} tabindex="0">
                 ${this.getCellContent(cell)}
             </div>
         `;
@@ -3467,9 +3452,9 @@ class CellManager {
         // Ajout du code pour les types de champ spécifiques
         const docfield = cell.column ? cell.column.docfield : null;
         const value = cell.content;
-        const fieldname = cell.column ? cell.column.id : null; 
-        
-        if (docfield && docfield.fieldtype === "Percent") {
+        const fieldname = cell.column ? cell.column.id : null;
+
+        if (docfield && docfield.fieldtype === 'Percent') {
             let percentage = parseFloat(value);
             if (isNaN(percentage)) {
                 percentage = 0;
@@ -3482,7 +3467,7 @@ class CellManager {
                             </div>`;
         } else if (typeof value === 'string' && (value.endsWith('.png') || value.endsWith('.jpg') || value.endsWith('.jpeg') || value.endsWith('.gif') || value.endsWith('.svg') || value.endsWith('.webp') || value.endsWith('.bmp'))) {
             contentHTML = `<img src="${value}" alt="${value}" style="max-height: 24px; cursor: pointer; margin: auto; display: block;" onclick="frappe.msgprint({ title: __('Image'), message: '<div style=&quot;text-align:center;&quot;><img src=&quot;${value}&quot; style=&quot;max-width: 100%;&quot;></div>' });">`;
-        } else if (docfield && docfield.fieldtype === "Select" && value != "") {
+        } else if (docfield && docfield.fieldtype === 'Select' && value != '') {
             contentHTML = `<span class="filterable indicator-pill ${frappe.utils.guess_colour(value)} ellipsis"
                             data-filter="${fieldname},=,${value}">
                             <span class="ellipsis"> ${__(value)} </span>
@@ -3567,6 +3552,11 @@ class ColumnManager {
             'bodyScrollable',
             'bodyRenderer'
         ]);
+
+        // Add translate method as a shortcut
+        this.translate = (str, args) => {
+            return this.instance ? this.instance.translate(str, args) : str;
+        };
 
         this.bindEvents();
     }
@@ -3823,10 +3813,30 @@ class ColumnManager {
                     })
                     .then(() => {
                         this.fireEvent('onSortColumn', this.getColumn(colIndex));
+                        this.setSortState();
                     });
             }, 200);
         });
-        
+
+    }
+
+    saveSorting(colIndex) {
+        let currentColumn = this.getColumn(colIndex);
+        let saveSorting = {
+            [currentColumn.name]: {
+                colIndex: colIndex,
+                sortOrder: currentColumn.sortOrder
+            }
+        };
+        this.sortingKey = this.options.sortingKey ? `${this.options.sortingKey}::sortedColumns` : 'sortedColumns' ;
+        localStorage.setItem(this.sortingKey, JSON.stringify(saveSorting));
+    }
+    setSortState(sortOrder) {
+        if (sortOrder === 'none') {
+            this.sortState = false;
+        } else {
+            this.sortState = true;
+        }
     }
 
     removeColumn(colIndex) {
@@ -3902,12 +3912,13 @@ class ColumnManager {
             // Save filters to localStorage with doctype from URL
             const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
             const instanceName = this.instance.name || '';
-            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
+            const key = 'dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype;
+            localStorage.setItem(key, JSON.stringify(filters));
             this.applyFilter(filters);
         };
         $.on(this.header, 'keydown', '.dt-filter', debounce$1(handler, 300));
     }
-    
+
     getDocTypeFromURL() {
         const path = window.location.pathname;
         if (path.includes('/app/')) {
@@ -3949,6 +3960,19 @@ class ColumnManager {
         if (columnsToSort.length === 1) {
             const column = columnsToSort[0];
             this.sortColumn(column.colIndex, column.sortOrder);
+        }
+    }
+
+    applySavedSortOrder() {
+
+        let key = this.options.sortingKey ? `${this.options.sortingKey}::sortedColumns` : 'sortedColumns' ;
+        let sortingConfig = JSON.parse(localStorage.getItem(key));
+        if (sortingConfig) {
+            const columnsToSort = Object.values(sortingConfig);
+            for (let column of columnsToSort) {
+                this.sortColumn(column.colIndex, column.sortOrder);
+                this.sortState = true;
+            }
         }
     }
 
@@ -4027,14 +4051,22 @@ class ColumnManager {
 
     getDropdownListHTML() {
         const { headerDropdown: dropdownItems } = this.options;
-
         return `
-            <div class="dt-dropdown__list">
-            ${dropdownItems.map((d, i) => `
-                <div class="dt-dropdown__list-item" data-index="${i}">${d.label}</div>
-            `).join('')}
+        <div class="dt-dropdown__list">
+        ${dropdownItems.map((d, i) => `
+            <div 
+                class="dt-dropdown__list-item${d.display ? ' dt-hidden' : ''}" 
+                data-index="${i}"
+            >
+                ${d.label}
             </div>
-        `;
+        `).join('')}
+        </div>
+    `;
+    }
+
+    toggleDropdownItem(index) {
+        $('.dt-dropdown__list', this.instance.dropdownContainer).children[index].classList.toggle('dt-hidden');
     }
 
     initializeFilters() {
@@ -4050,10 +4082,10 @@ class ColumnManager {
         } catch (e) {
             console.error('Error loading saved filters:', e);
         }
-        
+
         this.initializeDateFilters();
         this.initializeSelectFilters();
-        
+
         // Apply saved filters after initialization
         if (Object.keys(savedFilters).length > 0) {
             // Set filter input values based on saved filters
@@ -4063,7 +4095,7 @@ class ColumnManager {
                     input.value = savedFilters[colIndex];
                 }
             });
-            
+
             // Apply the filters
             this.applyFilter(savedFilters);
         }
@@ -4091,7 +4123,7 @@ class ColumnManager {
             const colIndex = input.dataset.colIndex;
             const column = this.datamanager.getColumn(colIndex);
             const fieldtype = column.docfield.fieldtype;
-    
+
             if (fieldtype === 'Check') {
                 const options = ['Yes', 'No'].sort();
                 this.initializeAwesomplete(input, options, true);
@@ -4105,7 +4137,7 @@ class ColumnManager {
                     method: 'frappe.desk.reportview.get_distinct_values',
                     args: {
                         doctype: column.docfield.options,
-                        fieldname: "name",
+                        fieldname: 'name',
                         limit: 10000,
                         filters: cur_list.get_filters_for_args()
                     }
@@ -4117,27 +4149,27 @@ class ColumnManager {
                 });
             }
         });
-    
+
         Promise.all(promises).then(() => {
         }).catch(error => {
             console.error('Error initializing select filters:', error);
         });
     }
-    
+
     /*
     initializeSelectFilters() {
         const selectInputs = $.each('.dt-filter', this.header);
         const promises = selectInputs.map(input => {
             const colIndex = input.dataset.colIndex;
             const column = this.datamanager.getColumn(colIndex);
-    
+
             if (!column || !column.docfield || !column.docfield.fieldtype) {
-                return Promise.resolve(); 
+                return Promise.resolve();
             }
-    
+
             const fieldtype = column.docfield.fieldtype;
             const fieldname = column.docfield.fieldname || "name";
-    
+
             if (fieldtype === 'Check') {
                 const options = ['Yes', 'No'].sort();
                 this.initializeAwesomplete(input, options, true);
@@ -4146,7 +4178,7 @@ class ColumnManager {
                 const options = column.docfield.options ? column.docfield.options.split('\n').filter(option => option).sort() : [];
                 this.initializeAwesomplete(input, options);
                 return Promise.resolve();
-            } else if (fieldtype === 'Data' && column.name != "Meta") {    
+            } else if (fieldtype === 'Data' && column.name != "Meta") {
                 return frappe.call({
                     method: 'frappe.desk.reportview.get_distinct_values',
                     args: {
@@ -4178,28 +4210,54 @@ class ColumnManager {
                 });
             }
         });
-    
+
         Promise.all(promises).then(() => {
         }).catch(error => {
             console.error('Error initializing select filters:', error);
         });
     }*/
-    
+
     initializeAwesomplete(input, options, isCheckField = false) {
+        // Configuration du lazy loading
+        const ITEMS_PER_PAGE = this.options.itemsPerPage || 20;
+        let currentPage = 0;
+        let filteredOptions = [...options];
+        let inactivityTimer = null;
+
         // Créer un conteneur personnalisé pour la liste avec un champ de recherche
         const awesompleteContainer = document.createElement('div');
         awesompleteContainer.classList.add('awesomplete');
         awesompleteContainer.style.display = 'none'; // Masquer par défaut
         document.body.appendChild(awesompleteContainer);
-    
+
+        // Fonction pour réinitialiser le timer d'inactivité
+        const resetInactivityTimer = () => {
+            if (inactivityTimer) {
+                clearTimeout(inactivityTimer);
+            }
+            inactivityTimer = setTimeout(() => {
+                if (awesompleteContainer.style.display !== 'none') {
+                    awesompleteContainer.style.display = 'none';
+                }
+            }, 5000); // 5 secondes
+        };
+
+        // Fonction pour arrêter le timer
+        const stopInactivityTimer = () => {
+            if (inactivityTimer) {
+                clearTimeout(inactivityTimer);
+                inactivityTimer = null;
+            }
+        };
+
         // Champ de recherche pour filtrer les options
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.classList.add('awesomplete__search');
-        searchInput.placeholder = __('Search...');
+        searchInput.placeholder = this.translate('Search...');
         searchInput.style.paddingRight = '24px'; // Ajoute un espace pour la croix
         awesompleteContainer.appendChild(searchInput);
-    
+
         // Ajouter la croix de réinitialisation dans l'input de recherche
         const clearButton = document.createElement('span');
         clearButton.classList.add('awesomplete__clear');
@@ -4211,134 +4269,207 @@ class ColumnManager {
         clearButton.style.transform = 'translateY(-50%)';
         clearButton.style.fontSize = '18px';
         clearButton.style.color = '#999';
-    
+
         // Ajouter la croix dans l'input de recherche
         const searchInputContainer = document.createElement('div');
         searchInputContainer.style.position = 'relative';
         searchInputContainer.appendChild(searchInput);
         searchInputContainer.appendChild(clearButton);
         awesompleteContainer.appendChild(searchInputContainer);
-    
+
         // Ajouter la fonction de réinitialisation
         clearButton.addEventListener('click', () => {
+            resetInactivityTimer(); // Réinitialiser le timer
             input.value = ''; // Réinitialiser l'input principal
             searchInput.value = ''; // Réinitialiser le champ de recherche
             renderOptions(); // Réafficher toutes les options
-            
+
             // Mettre à jour les filtres dans le localStorage après réinitialisation
             const filters = this.getAppliedFilters();
             const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
             const instanceName = this.instance.name || '';
-            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
-            
+            const key = 'dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype;
+            localStorage.setItem(key, JSON.stringify(filters));
+
             this.applyFilter(filters); // Appliquer les filtres mis à jour
-    
+
             // Remettre le focus sur le champ de recherche
             searchInput.focus();
         });
-    
+
         const checkboxList = document.createElement('ul');
         checkboxList.classList.add('awesomplete__checkbox-list');
         awesompleteContainer.appendChild(checkboxList);
-    
-        // Fonction pour afficher les options filtrées
-        const renderOptions = (filter = '') => {
-            checkboxList.innerHTML = '';
-            options
-                .filter(option => option.toLowerCase().includes(filter.toLowerCase()))
-                .forEach(option => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('awesomplete__checkbox-item');
-    
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = option;
-                    checkbox.classList.add('awesomplete__checkbox');
-    
-                    const label = document.createElement('label');
-                    // Utiliser la traduction de Frappe pour afficher l'option traduite
-                    const translatedOption = isCheckField ? (option === 'Yes' ? __('Yes') : __('No')) : __(option);
-                    label.textContent = translatedOption;
-                    label.prepend(checkbox);
-    
-                    // Restaurer l'état de sélection des checkboxes si elles sont déjà sélectionnées
-                    if (input.value.split('; ').includes(option)) {
-                        checkbox.checked = true;
-                    }
-    
-                    listItem.appendChild(label);
-                    checkboxList.appendChild(listItem);
-    
-                    checkbox.addEventListener('change', (event) => {
-                        // Empêcher la fermeture lors du clic sur une checkbox
-                        event.stopPropagation();
-                        this.handleCheckboxSelection(input, checkboxList, isCheckField);
-    
-                        // Maintenir le focus sur le champ de recherche après sélection
-                        setTimeout(() => {
-                            searchInput.focus();
-                        }, 0);
-                    });
+
+        // Fonction pour afficher les options filtrées avec lazy loading
+        const renderOptions = (filter = '', reset = true) => {
+            if (reset) {
+                currentPage = 0;
+                checkboxList.innerHTML = '';
+                filteredOptions = options.filter(option =>
+                    option.toLowerCase().includes(filter.toLowerCase())
+                );
+            }
+
+            const startIndex = currentPage * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredOptions.length);
+            const optionsToShow = filteredOptions.slice(startIndex, endIndex);
+
+            optionsToShow.forEach(option => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('awesomplete__checkbox-item');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = option;
+                checkbox.classList.add('awesomplete__checkbox');
+
+                const label = document.createElement('label');
+                // Traduire l'option si une traduction est disponible
+                let translatedOption = this.translate(option);
+                label.textContent = translatedOption;
+                label.prepend(checkbox);
+
+                // Restaurer l'état de sélection des checkboxes si elles sont déjà sélectionnées
+                if (input.value.split('; ').includes(option)) {
+                    checkbox.checked = true;
+                }
+
+                listItem.appendChild(label);
+                checkboxList.appendChild(listItem);
+
+                checkbox.addEventListener('change', (event) => {
+                    // Empêcher la fermeture lors du clic sur une checkbox
+                    event.stopPropagation();
+                    resetInactivityTimer(); // Réinitialiser le timer
+                    this.handleCheckboxSelection(input, checkboxList, isCheckField);
+
+                    // Maintenir le focus sur le champ de recherche après sélection
+                    setTimeout(() => {
+                        searchInput.focus();
+                    }, 0);
                 });
+            });
+
+            // Ajouter ou mettre à jour le bouton "Afficher plus"
+            const existingLoadMore = checkboxList.querySelector('.awesomplete__load-more');
+            if (existingLoadMore) {
+                existingLoadMore.remove();
+            }
+
+            if (endIndex < filteredOptions.length) {
+                const loadMoreItem = document.createElement('li');
+                loadMoreItem.classList.add('awesomplete__load-more');
+                loadMoreItem.style.textAlign = 'center';
+                loadMoreItem.style.padding = '8px';
+                loadMoreItem.style.cursor = 'pointer';
+                loadMoreItem.style.backgroundColor = '#f5f5f5';
+                loadMoreItem.style.borderTop = '1px solid #ddd';
+
+                const remainingCount = filteredOptions.length - endIndex;
+                const showMoreText = this.translate('Show more');
+                loadMoreItem.innerHTML = `<strong>${showMoreText} (${remainingCount})</strong>`;
+
+                loadMoreItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    resetInactivityTimer(); // Réinitialiser le timer
+                    currentPage++;
+                    renderOptions(searchInput.value, false);
+                });
+
+                checkboxList.appendChild(loadMoreItem);
+            }
+
+            // Afficher le nombre total d'éléments
+            const existingCount = awesompleteContainer.querySelector('.awesomplete__count');
+            if (existingCount) {
+                existingCount.remove();
+            }
+
+            if (filteredOptions.length > ITEMS_PER_PAGE) {
+                const countDiv = document.createElement('div');
+                countDiv.classList.add('awesomplete__count');
+                countDiv.style.padding = '4px 8px';
+                countDiv.style.fontSize = '12px';
+                countDiv.style.color = '#666';
+                countDiv.style.borderBottom = '1px solid #ddd';
+                const showing = Math.min(endIndex, filteredOptions.length);
+                const total = filteredOptions.length;
+                const showingText = this.translate('Showing');
+                countDiv.textContent = `${showingText} ${showing} / ${total}`;
+
+                // Insérer après le champ de recherche
+                searchInputContainer.insertAdjacentElement('afterend', countDiv);
+            }
         };
-    
+
         // Filtrer les options au fur et à mesure que l'utilisateur tape
         searchInput.addEventListener('input', () => {
+            resetInactivityTimer(); // Réinitialiser le timer
             renderOptions(searchInput.value);
             input.value = searchInput.value;
-            
+
             // Mettre à jour les filtres dans le localStorage lorsqu'on tape
             const filters = this.getAppliedFilters();
             const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
             const instanceName = this.instance.name || '';
-            localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
-            
+            const key = 'dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype;
+            localStorage.setItem(key, JSON.stringify(filters));
+
             this.applyFilter(filters);
-        });              
-    
+        });
+
         // Initialiser la liste avec toutes les options
         renderOptions();
-    
+
         input.addEventListener('focus', () => {
             awesompleteContainer.style.display = 'block';
-    
+            resetInactivityTimer(); // Démarrer le timer
+
             const rect = input.getBoundingClientRect();
             const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
+
             awesompleteContainer.style.position = 'absolute';
             awesompleteContainer.style.left = `${rect.left + scrollLeft}px`;
             awesompleteContainer.style.top = `${rect.bottom + scrollTop + 10}px`;
-            awesompleteContainer.style.width = `250px`;
-    
+            awesompleteContainer.style.width = '250px';
+
             // Utiliser setTimeout pour garantir que le focus est bien appliqué
             setTimeout(() => {
                 searchInput.focus();
             }, 0);
         });
-    
+
         input.addEventListener('blur', () => {
             setTimeout(() => {
                 // Masquer la liste seulement si l'utilisateur n'a pas cliqué sur une option
                 if (!awesompleteContainer.contains(document.activeElement)) {
                     awesompleteContainer.style.display = 'none';
+                    stopInactivityTimer(); // Arrêter le timer
                 }
             }, 200); // Retard pour permettre de cliquer sur une case à cocher avant que la liste ne soit cachée
         });
-    
+
         // Empêcher la fermeture lors du clic sur la liste
         awesompleteContainer.addEventListener('mousedown', (event) => {
             event.preventDefault();
         });
-    
+
+        // Réinitialiser le timer lors du mouvement de la souris
+        awesompleteContainer.addEventListener('mousemove', () => {
+            resetInactivityTimer();
+        });
+
         // Fermer la liste en cliquant à l'extérieur
         document.addEventListener('click', (event) => {
             if (!awesompleteContainer.contains(event.target) && event.target !== input) {
                 awesompleteContainer.style.display = 'none';
+                stopInactivityTimer(); // Arrêter le timer
             }
         });
     }
-    
+
     handleCheckboxSelection(input, checkboxList, isCheckField) {
         const selectedValues = [];
 
@@ -4351,7 +4482,7 @@ class ColumnManager {
                 selectedValues.push(value);
             }
         });
-    
+
         checkboxList.querySelectorAll('input:not(:checked)').forEach(checkbox => {
             let value = checkbox.value;
             if (isCheckField) {
@@ -4362,7 +4493,7 @@ class ColumnManager {
                 selectedValues.splice(index, 1);
             }
         });
-    
+
         // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
         input.value = selectedValues.join('; ');
 
@@ -4371,10 +4502,10 @@ class ColumnManager {
         const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
         const instanceName = this.instance.name || '';
         localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
-        
+
         // Appliquer les filtres
         this.applyFilter(filters);
-    }         
+    }
 }
 
 class RowManager {
@@ -4428,14 +4559,14 @@ class RowManager {
                     // Shift+click: select all rows between last checked and current
                     const start = Math.min(this.lastCheckedRowIndex, rowIndex);
                     const end = Math.max(this.lastCheckedRowIndex, rowIndex);
-                    
+
                     for (let i = start; i <= end; i++) {
                         this.checkRow(i, checked);
                     }
                 } else {
                     this.checkRow(rowIndex, checked);
                 }
-                
+
                 // Update last checked row index
                 this.lastCheckedRowIndex = rowIndex;
             }
@@ -4717,7 +4848,7 @@ class RowManager {
 
         if (props.isFilter) {
             row = row.map(cell => {
-                ////
+                // //
                 const fieldtype = cell.docfield ? cell.docfield.fieldtype : null;
                 return Object.assign({}, cell, {
                     content: this.getFilterInput({
@@ -4729,7 +4860,7 @@ class RowManager {
                     isHeader: undefined,
                     editable: false
                 });
-                ////
+                // //
             });
 
             rowIdentifier = 'filter';
@@ -4750,13 +4881,13 @@ class RowManager {
         let title = `title="Filter based on ${props.name || 'Index'}"`;
         const dataAttr = makeDataAttributeString(props);
         const fieldtype = props.fieldtype || null;
-        ////
+        // //
         if (fieldtype === 'Date') {
             return `<input class="dt-filter date-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
         } else if (['Select', 'Link', 'Check'].includes(fieldtype)) {
             return `<input class="dt-filter select-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
         }
-        ////
+        // //
         return `<input class="dt-filter dt-input" type="text" ${dataAttr} tabindex="1" ${props.colIndex === 0 ? 'disabled' : title} />`;
     }
 
@@ -5247,9 +5378,11 @@ class BodyRenderer {
 
     renderRows(rows) {
         this.visibleRows = rows;
-
+        this.visibleRowIndices = rows.map(row => row.meta.rowIndex);
+        this.instance.noData = false;
         if (rows.length === 0) {
             this.bodyScrollable.innerHTML = this.getNoDataHTML();
+            this.instance.noData = true;
             this.footer.innerHTML = '';
             return;
         }
@@ -5356,7 +5489,6 @@ class BodyRenderer {
         this.rowmanager.highlightCheckedRows();
         this.cellmanager.selectAreaOnClusterChanged();
         this.cellmanager.focusCellOnClusterChanged();
-        this.bodyScrollable.style.removeProperty('overflow');
     }
 
     showToastMessage(message, hideAfter) {
@@ -5374,7 +5506,20 @@ class BodyRenderer {
     }
 
     getNoDataHTML() {
-        return `<div class="dt-scrollable__no-data">${this.options.noDataMessage}</div>`;
+        const style = window.getComputedStyle(this.instance.header);
+        const matrix = new DOMMatrixReadOnly(style.transform);
+        const width = (-matrix.m41) + this.instance.header.clientWidth;
+        const height = this.bodyScrollable.clientHeight;
+        return `
+            <div 
+                class="dt-scrollable__no-data" 
+                style="width: ${width}px; height: ${height}px"
+            >
+                <div class="dt-scrollable__no-data no-data-message">
+                    ${this.options.noDataMessage}
+                </div>
+            </div>
+        `;
     }
 
     getToastMessageHTML(message) {
@@ -5400,6 +5545,7 @@ class Style {
         this.styleEl = styleEl;
 
         this.bindResizeWindow();
+        this.bindScrollHeader();
     }
 
     get stylesheet() {
@@ -5413,6 +5559,34 @@ class Style {
         if (this.options.layout === 'fluid') {
             $.on(window, 'resize', this.onWindowResize);
         }
+    }
+
+    bindScrollHeader() {
+        this._settingHeaderPosition = false;
+
+        $.on(this.bodyScrollable, 'scroll', (e) => {
+            if (this._settingHeaderPosition) return;
+
+            this._settingHeaderPosition = true;
+
+            requestAnimationFrame(() => {
+                const left = -e.target.scrollLeft;
+
+                $.style(this.header, {
+                    transform: `translateX(${left}px)`
+                });
+                $.style(this.footer, {
+                    transform: `translateX(${left}px)`
+                });
+                this._settingHeaderPosition = false;
+                if (this.instance.noData) {
+                    $.style($('.no-data-message'), {
+                        left: `${this.instance.wrapper.clientWidth / 2 - (left)}px`
+                    });
+                }
+                this._settingHeaderPosition = false;
+            });
+        });
     }
 
     onWindowResize() {
@@ -5793,34 +5967,142 @@ var en = {
 	"{count} rows selected": {"1":"{count} row selected","default":"{count} rows selected"}
 };
 
+var Open = "Offen";
+var Closed = "Geschlossen";
+var Pending = "Ausstehend";
+var Draft = "Entwurf";
+var Submitted = "Eingereicht";
+var Cancelled = "Abgebrochen";
+var Completed = "Abgeschlossen";
+var Active = "Aktiv";
+var Inactive = "Inaktiv";
+var Paid = "Bezahlt";
+var Unpaid = "Unbezahlt";
+var Approved = "Genehmigt";
+var Rejected = "Abgelehnt";
+var Yes = "Ja";
+var No = "Nein";
+var Showing = "Zeige";
 var de = {
+	Open: Open,
+	Closed: Closed,
+	Pending: Pending,
+	Draft: Draft,
+	Submitted: Submitted,
+	Cancelled: Cancelled,
+	Completed: Completed,
+	Active: Active,
+	Inactive: Inactive,
+	Paid: Paid,
+	Unpaid: Unpaid,
+	Approved: Approved,
+	Rejected: Rejected,
+	Yes: Yes,
+	No: No,
+	Showing: Showing,
 	"Sort Ascending": "Aufsteigend sortieren",
 	"Sort Descending": "Absteigend sortieren",
 	"Reset sorting": "Sortierung zurücksetzen",
 	"Remove column": "Spalte entfernen",
 	"No Data": "Keine Daten",
 	"{count} cells copied": {"1":"{count} Zelle kopiert","default":"{count} Zellen kopiert"},
-	"{count} rows selected": {"1":"{count} Zeile ausgewählt","default":"{count} Zeilen ausgewählt"}
+	"{count} rows selected": {"1":"{count} Zeile ausgewählt","default":"{count} Zeilen ausgewählt"},
+	"In Progress": "In Bearbeitung",
+	"On Hold": "Angehalten",
+	"Search...": "Suchen...",
+	"Show more": "Mehr anzeigen"
 };
 
+var Open$1 = "Ouvert";
+var Closed$1 = "Fermé";
+var Pending$1 = "En attente";
+var Draft$1 = "Brouillon";
+var Submitted$1 = "Soumis";
+var Cancelled$1 = "Annulé";
+var Completed$1 = "Terminé";
+var Active$1 = "Actif";
+var Inactive$1 = "Inactif";
+var Paid$1 = "Payé";
+var Unpaid$1 = "Impayé";
+var Approved$1 = "Approuvé";
+var Rejected$1 = "Rejeté";
+var Yes$1 = "Oui";
+var No$1 = "Non";
+var Showing$1 = "Affichage";
 var fr = {
+	Open: Open$1,
+	Closed: Closed$1,
+	Pending: Pending$1,
+	Draft: Draft$1,
+	Submitted: Submitted$1,
+	Cancelled: Cancelled$1,
+	Completed: Completed$1,
+	Active: Active$1,
+	Inactive: Inactive$1,
+	Paid: Paid$1,
+	Unpaid: Unpaid$1,
+	Approved: Approved$1,
+	Rejected: Rejected$1,
+	Yes: Yes$1,
+	No: No$1,
+	Showing: Showing$1,
 	"Sort Ascending": "Trier par ordre croissant",
 	"Sort Descending": "Trier par ordre décroissant",
 	"Reset sorting": "Réinitialiser le tri",
 	"Remove column": "Supprimer colonne",
 	"No Data": "Pas de données",
 	"{count} cells copied": {"1":"{count} cellule copiée","default":"{count} cellules copiées"},
-	"{count} rows selected": {"1":"{count} ligne sélectionnée","default":"{count} lignes sélectionnées"}
+	"{count} rows selected": {"1":"{count} ligne sélectionnée","default":"{count} lignes sélectionnées"},
+	"In Progress": "En cours",
+	"On Hold": "En pause",
+	"Search...": "Rechercher...",
+	"Show more": "Afficher plus"
 };
 
+var Open$2 = "Aperto";
+var Closed$2 = "Chiuso";
+var Pending$2 = "In attesa";
+var Draft$2 = "Bozza";
+var Submitted$2 = "Inviato";
+var Cancelled$2 = "Annullato";
+var Completed$2 = "Completato";
+var Active$2 = "Attivo";
+var Inactive$2 = "Inattivo";
+var Paid$2 = "Pagato";
+var Unpaid$2 = "Non pagato";
+var Approved$2 = "Approvato";
+var Rejected$2 = "Rifiutato";
+var Yes$2 = "Sì";
+var No$2 = "No";
+var Showing$2 = "Visualizzazione";
 var it = {
+	Open: Open$2,
+	Closed: Closed$2,
+	Pending: Pending$2,
+	Draft: Draft$2,
+	Submitted: Submitted$2,
+	Cancelled: Cancelled$2,
+	Completed: Completed$2,
+	Active: Active$2,
+	Inactive: Inactive$2,
+	Paid: Paid$2,
+	Unpaid: Unpaid$2,
+	Approved: Approved$2,
+	Rejected: Rejected$2,
+	Yes: Yes$2,
+	No: No$2,
+	Showing: Showing$2,
 	"Sort Ascending": "Ordinamento ascendente",
 	"Sort Descending": "Ordinamento decrescente",
 	"Reset sorting": "Azzeramento ordinamento",
 	"Remove column": "Rimuovi colonna",
 	"No Data": "Nessun dato",
 	"{count} cells copied": {"1":"Copiato {count} cella","default":"{count} celle copiate"},
-	"{count} rows selected": {"1":"{count} linea selezionata","default":"{count} linee selezionate"}
+	"{count} rows selected": {"1":"{count} linea selezionata","default":"{count} linee selezionate"},
+	"In Progress": "In corso",
+	"On Hold": "In sospeso",
+	"Search...": "Cerca...",
+	"Show more": "Mostra altro"
 };
 
 function getTranslations() {
@@ -5903,10 +6185,10 @@ function processFilter(column, keyword, doctype) {
         if (!isNaN(parsedKeyword)) {
             // Retourner un filtre exact si le mot-clé est un nombre (comme 0)
             return [doctype, column.id, '=', parsedKeyword];
-        } else {
-            console.error('Invalid percent format:', keyword);
-            return null;
         }
+        console.error('Invalid percent format:', keyword);
+        return null;
+
     } else if (column && column.id.includes(':')) {
         const [childDoctype, childField] = column.id.split(':');
         return [childDoctype, childField, 'like', `%${keyword}%`];
@@ -5919,23 +6201,41 @@ function processFilter(column, keyword, doctype) {
             const cleanedDate = cleanDateString(keyword);
             if (cleanedDate) {
                 return [doctype, column.id, '=', cleanedDate];
-            } else {
-                console.error('Invalid date format:', keyword);
-                return null;
             }
+            console.error('Invalid date format:', keyword);
+            return null;
+
         } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
             if (keyword.includes(';')) {
                 const keywordsArray = keyword.split(';').map(k => k.trim());
                 return [doctype, column.id, 'in', keywordsArray];
-            } else {
-                return [doctype, column.id, 'like', `%${keyword}%`];
             }
-        }        
+            // Détecter si c'est un champ de statut
+            const columnName = (column.name || column.id || '').toLowerCase();
+            let isStatusField = columnName.includes('status') || columnName.includes('state') ||
+                                columnName === 'docstatus' || columnName.includes('workflow_state');
+
+            // Vérifier aussi les options pour détecter un champ de statut
+            if (!isStatusField && column.docfield.fieldtype === 'Select' && column.docfield.options) {
+                const options = column.docfield.options.toLowerCase();
+                const statusPatterns = ['paid', 'unpaid', 'open', 'closed', 'pending', 'draft',
+                    'submitted', 'cancelled', 'completed', 'active', 'inactive'];
+                isStatusField = statusPatterns.some(pattern => options.includes(pattern));
+            }
+
+            if (isStatusField) {
+                // Pour les champs de statut, utiliser une égalité exacte
+                return [doctype, column.id, '=', keyword];
+            }
+
+            return [doctype, column.id, 'like', `%${keyword}%`];
+
+        }
         return [doctype, column.id, 'like', `%${keyword}%`];
-    } else {
-        console.warn(`Colonne invalide à l'index ${colIndex}`);
-        return null;
     }
+    console.warn(`Colonne invalide à l'index ${colIndex}`);
+    return null;
+
 }
 
 function filterRows(rows, filters, data, start = 0, page_length = 10000) {
@@ -5967,7 +6267,7 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
 
             const listCountElement = pagingArea.querySelector('.list-count');
             if (listCountElement) {
-                listCountElement.textContent = page_length; 
+                listCountElement.textContent = page_length;
             }
             const btnMore = pagingArea.querySelector('.btn-more');
             if (btnMore) {
@@ -5979,7 +6279,7 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
             }
             cur_list.page_length = page_length;
             cur_list.total_count = page_length;
-            
+
             const formattedRows = cur_list.data.map((rowData, rowIndex) => {
                 return data.columns
                     .filter(column => column.visible !== false)
@@ -5996,7 +6296,7 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
                             cellData = rowData[column.field] || null;
                         }
 
-                        if (column.field === "meta") {
+                        if (column.field === 'meta') {
                             return {
                                 content: cur_list.get_meta_html(rowData),
                                 rowIndex: rowIndex,
@@ -6011,9 +6311,9 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
                                 docfield: column.docfield || {},
                                 attributes: {
                                     class: cellClass,
-                                    "data-row-index": rowIndex,
-                                    "data-col-index": colIndex,
-                                    "tabindex": 0
+                                    'data-row-index': rowIndex,
+                                    'data-col-index': colIndex,
+                                    'tabindex': 0
                                 },
                                 contentAttributes: {
                                     class: contentClass,
@@ -6042,9 +6342,9 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
                             docfield: column.docfield || {},
                             attributes: {
                                 class: cellClass,
-                                "data-row-index": rowIndex,
-                                "data-col-index": colIndex,
-                                "tabindex": 0
+                                'data-row-index': rowIndex,
+                                'data-col-index': colIndex,
+                                'tabindex': 0
                             },
                             contentAttributes: {
                                 class: contentClass,
@@ -6062,9 +6362,9 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
                     const bValue = b.find(cell => cell.colIndex === sortedColumn.colIndex).content;
                     if (sortedColumn.sortOrder === 'asc') {
                         return aValue > bValue ? 1 : -1;
-                    } else {
-                        return aValue < bValue ? 1 : -1;
                     }
+                    return aValue < bValue ? 1 : -1;
+
                 });
             }
 
@@ -6193,6 +6493,10 @@ class DataTable {
         if (this.options.data) {
             this.refresh();
             this.columnmanager.applyDefaultSortOrder();
+            if (this.options.saveSorting) {
+                this.setupSaveSorting();
+                this.columnmanager.applySavedSortOrder();
+            }
         }
     }
 
@@ -6261,11 +6565,9 @@ class DataTable {
     prepareDom() {
         this.wrapper.innerHTML = `
             <div class="datatable" dir="${this.options.direction}">
-                <div class="datatable-content">
-                    <div class="dt-header"></div>
-                    <div class="dt-scrollable"></div>
-                    <div class="dt-footer"></div>
-                </div>
+                <div class="dt-header"></div>
+                <div class="dt-scrollable"></div>
+                <div class="dt-footer"></div>
                 <div class="dt-freeze">
                     <span class="dt-freeze__message">
                         ${this.options.freezeMessage}
@@ -6364,6 +6666,9 @@ class DataTable {
     sortColumn(colIndex, sortOrder) {
         this.columnmanager.sortColumn(colIndex, sortOrder);
     }
+    saveSorting(colIndex, nextSortOrder) {
+        this.columnmanager.saveSorting(colIndex, nextSortOrder);
+    }
 
     removeColumn(colIndex) {
         this.columnmanager.removeColumn(colIndex);
@@ -6416,6 +6721,25 @@ class DataTable {
 
     translate(str, args) {
         return this.translationManager.translate(str, args);
+    }
+    setupSaveSorting() {
+        // add options in default headerdropdown
+        let action = {
+            label: this.translate('Save Sorting'),
+            action: function (column) {
+                this.saveSorting(column.colIndex, column.sotOrder);
+            },
+            display: 'hidden'
+        };
+        this.options.headerDropdown.push(action);
+        this.columnmanager.bindDropdown();
+        // add events for onSortColumn
+        this.on('onSortColumn', function (column) {
+            this.columnmanager.toggleDropdownItem(4);
+            if (column.sortOrder === 'none') {
+                localStorage.removeItem(this.columnmanager.sortingKey);
+            }
+        });
     }
 }
 

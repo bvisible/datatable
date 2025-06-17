@@ -44,10 +44,10 @@ function processFilter(column, keyword, doctype) {
         if (!isNaN(parsedKeyword)) {
             // Retourner un filtre exact si le mot-clé est un nombre (comme 0)
             return [doctype, column.id, '=', parsedKeyword];
-        } else {
-            console.error('Invalid percent format:', keyword);
-            return null;
         }
+        console.error('Invalid percent format:', keyword);
+        return null;
+
     } else if (column && column.id.includes(':')) {
         const [childDoctype, childField] = column.id.split(':');
         return [childDoctype, childField, 'like', `%${keyword}%`];
@@ -60,23 +60,41 @@ function processFilter(column, keyword, doctype) {
             const cleanedDate = cleanDateString(keyword);
             if (cleanedDate) {
                 return [doctype, column.id, '=', cleanedDate];
-            } else {
-                console.error('Invalid date format:', keyword);
-                return null;
             }
+            console.error('Invalid date format:', keyword);
+            return null;
+
         } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
             if (keyword.includes(';')) {
                 const keywordsArray = keyword.split(';').map(k => k.trim());
                 return [doctype, column.id, 'in', keywordsArray];
-            } else {
-                return [doctype, column.id, 'like', `%${keyword}%`];
             }
-        }        
+            // Détecter si c'est un champ de statut
+            const columnName = (column.name || column.id || '').toLowerCase();
+            let isStatusField = columnName.includes('status') || columnName.includes('state') ||
+                                columnName === 'docstatus' || columnName.includes('workflow_state');
+
+            // Vérifier aussi les options pour détecter un champ de statut
+            if (!isStatusField && column.docfield.fieldtype === 'Select' && column.docfield.options) {
+                const options = column.docfield.options.toLowerCase();
+                const statusPatterns = ['paid', 'unpaid', 'open', 'closed', 'pending', 'draft',
+                    'submitted', 'cancelled', 'completed', 'active', 'inactive'];
+                isStatusField = statusPatterns.some(pattern => options.includes(pattern));
+            }
+
+            if (isStatusField) {
+                // Pour les champs de statut, utiliser une égalité exacte
+                return [doctype, column.id, '=', keyword];
+            }
+
+            return [doctype, column.id, 'like', `%${keyword}%`];
+
+        }
         return [doctype, column.id, 'like', `%${keyword}%`];
-    } else {
-        console.warn(`Colonne invalide à l'index ${colIndex}`);
-        return null;
     }
+    console.warn(`Colonne invalide à l'index ${colIndex}`);
+    return null;
+
 }
 
 export default function filterRows(rows, filters, data, start = 0, page_length = 10000) {
@@ -103,12 +121,12 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
 
         frappe.call(args).then(r => {
             cur_list.prepare_data(r);
-            let page_length = r.message.values.length
+            let page_length = r.message.values.length;
             const pagingArea = cur_list.$paging_area[0];
 
             const listCountElement = pagingArea.querySelector('.list-count');
             if (listCountElement) {
-                listCountElement.textContent = page_length; 
+                listCountElement.textContent = page_length;
             }
             const btnMore = pagingArea.querySelector('.btn-more');
             if (btnMore) {
@@ -120,7 +138,7 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
             }
             cur_list.page_length = page_length;
             cur_list.total_count = page_length;
-            
+
             const formattedRows = cur_list.data.map((rowData, rowIndex) => {
                 return data.columns
                     .filter(column => column.visible !== false)
@@ -137,7 +155,7 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
                             cellData = rowData[column.field] || null;
                         }
 
-                        if (column.field === "meta") {
+                        if (column.field === 'meta') {
                             return {
                                 content: cur_list.get_meta_html(rowData),
                                 rowIndex: rowIndex,
@@ -152,9 +170,9 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
                                 docfield: column.docfield || {},
                                 attributes: {
                                     class: cellClass,
-                                    "data-row-index": rowIndex,
-                                    "data-col-index": colIndex,
-                                    "tabindex": 0
+                                    'data-row-index': rowIndex,
+                                    'data-col-index': colIndex,
+                                    'tabindex': 0
                                 },
                                 contentAttributes: {
                                     class: contentClass,
@@ -183,9 +201,9 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
                             docfield: column.docfield || {},
                             attributes: {
                                 class: cellClass,
-                                "data-row-index": rowIndex,
-                                "data-col-index": colIndex,
-                                "tabindex": 0
+                                'data-row-index': rowIndex,
+                                'data-col-index': colIndex,
+                                'tabindex': 0
                             },
                             contentAttributes: {
                                 class: contentClass,
@@ -203,9 +221,9 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
                     const bValue = b.find(cell => cell.colIndex === sortedColumn.colIndex).content;
                     if (sortedColumn.sortOrder === 'asc') {
                         return aValue > bValue ? 1 : -1;
-                    } else {
-                        return aValue < bValue ? 1 : -1;
                     }
+                    return aValue < bValue ? 1 : -1;
+
                 });
             }
 
@@ -230,7 +248,6 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
         });
     });
 }
-
 
 function getFilterMethod(rows, allData, filter) {
     const getFormattedValue = cell => {

@@ -59,14 +59,14 @@ export default class RowManager {
                     // Shift+click: select all rows between last checked and current
                     const start = Math.min(this.lastCheckedRowIndex, rowIndex);
                     const end = Math.max(this.lastCheckedRowIndex, rowIndex);
-                    
+
                     for (let i = start; i <= end; i++) {
                         this.checkRow(i, checked);
                     }
                 } else {
                     this.checkRow(rowIndex, checked);
                 }
-                
+
                 // Update last checked row index
                 this.lastCheckedRowIndex = rowIndex;
             }
@@ -348,7 +348,7 @@ export default class RowManager {
 
         if (props.isFilter) {
             row = row.map(cell => {
-                ////
+                // //
                 const fieldtype = cell.docfield ? cell.docfield.fieldtype : null;
                 return Object.assign({}, cell, {
                     content: this.getFilterInput({
@@ -360,7 +360,7 @@ export default class RowManager {
                     isHeader: undefined,
                     editable: false
                 });
-                ////
+                // //
             });
 
             rowIdentifier = 'filter';
@@ -381,13 +381,13 @@ export default class RowManager {
         let title = `title="Filter based on ${props.name || 'Index'}"`;
         const dataAttr = makeDataAttributeString(props);
         const fieldtype = props.fieldtype || null;
-        ////
+        // //
         if (fieldtype === 'Date') {
             return `<input class="dt-filter date-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
         } else if (['Select', 'Link', 'Check'].includes(fieldtype)) {
             return `<input class="dt-filter select-filter dt-input" type="text" ${dataAttr} tabindex="1" ${title} />`;
         }
-        ////
+        // //
         return `<input class="dt-filter dt-input" type="text" ${dataAttr} tabindex="1" ${props.colIndex === 0 ? 'disabled' : title} />`;
     }
 
