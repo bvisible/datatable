@@ -25,8 +25,6 @@ export default class CellManager {
         ]);
 
         this.bindEvents();
-        this.stickyRowWidth = 0;
-        this.stickyColWitdh = [];
     }
 
     bindEvents() {
@@ -335,7 +333,6 @@ export default class CellManager {
 
     _selectArea($cell1, $cell2) {
         if ($cell1 === $cell2) return false;
-
         const cells = this.getCellsInRange($cell1, $cell2);
         if (!cells) return false;
 
@@ -362,9 +359,17 @@ export default class CellManager {
             const cell2 = $.data($cell2);
 
             colIndex1 = +cell1.colIndex;
-            rowIndex1 = +cell1.rowIndex;
             colIndex2 = +cell2.colIndex;
-            rowIndex2 = +cell2.rowIndex;
+
+            if (this.columnmanager.sortState) {
+                this.sortedColumn = true;
+                rowIndex1 = this.datamanager.rowViewOrder.indexOf(parseInt(cell1.rowIndex, 10));
+                rowIndex2 = this.datamanager.rowViewOrder.indexOf(parseInt(cell2.rowIndex, 10));
+            } else {
+                rowIndex1 = +cell1.rowIndex;
+                rowIndex2 = +cell2.rowIndex;
+            }
+
         }
 
         if (rowIndex1 > rowIndex2) {
@@ -396,7 +401,11 @@ export default class CellManager {
             }
             colIndex = colIndex1;
         });
-
+        if (this.columnmanager.sortState) {
+            cells.forEach(selectedCells => {
+                selectedCells[1] = this.datamanager.rowViewOrder[selectedCells[1]];
+            });
+        }
         return cells;
     }
 
@@ -802,43 +811,9 @@ export default class CellManager {
             isTotalRow
         });
 
-        let styles = '';
-
         const row = this.datamanager.getRow(rowIndex);
 
         const isBodyCell = !(isHeader || isFilter || isTotalRow);
-
-        const serialNoColIndex = !this.options.checkboxColumn && this.options.serialNoColumn ? 0 : 1;
-
-        let sticky = false;
-
-        let checkboxserialNoclass = '';
-
-        if (colIndex === 0 && this.options.checkboxColumn) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) this.stickyRowWidth = 34;
-            checkboxserialNoclass = 'dt-cell-checkbox';
-            sticky = true;
-        } else if (colIndex === serialNoColIndex && this.options.serialNoColumn) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
-                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
-                this.stickyRowWidth += (cell.width || 37);
-                checkboxserialNoclass = 'dt-cell-serial-no';
-            }
-            styles = `left:${this.stickyColWitdh[isBodyCell ? cell.column.id : cell.id]}px;`;
-            sticky = true;
-
-        } else if (cell.sticky) {
-            if (cell.isHeader && !(cell.id in this.stickyColWitdh)) {
-                this.stickyColWitdh[cell.id] = this.stickyRowWidth;
-                this.stickyRowWidth += ((cell.width || 100) + 1);
-            }
-            styles = `left:${this.stickyColWitdh[cell.id]}px;`;
-            sticky = true;
-
-        } else if ((isBodyCell || isTotalRow) && cell.column.sticky) {
-            styles = `left:${this.stickyColWitdh[cell.column.id]}px;`;
-            sticky = true;
-        }
 
         const className = [
             'dt-cell',
@@ -848,13 +823,11 @@ export default class CellManager {
             isHeader ? 'dt-cell--header' : '',
             isHeader ? `dt-cell--header-${colIndex}` : '',
             isFilter ? 'dt-cell--filter' : '',
-            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
-            sticky ? 'dt-sticky-col' : '',
-            checkboxserialNoclass,
+            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
         ].join(' ');
 
         return `
-            <div class="${className}" ${dataAttr} tabindex="0" style="${styles}">
+            <div class="${className}" ${dataAttr} tabindex="0">
                 ${this.getCellContent(cell)}
             </div>
         `;
