@@ -237,6 +237,15 @@ export default function filterRows(rows, filters, data, start = 0, page_length =
 
             data.rows = formattedRows;
 
+            // Hook: Allow cur_list to add additional rows (like totals row)
+            if (cur_list && typeof cur_list.add_totals_to_filtered_rows === 'function') {
+                const totalsRow = cur_list.add_totals_to_filtered_rows(formattedRows, data.columns);
+                if (totalsRow) {
+                    formattedRows.push(totalsRow);
+                    data.rows = formattedRows;
+                }
+            }
+
             if (typeof data.refresh === 'function') {
                 data.refresh(formattedRows);
             }
