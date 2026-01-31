@@ -340,6 +340,13 @@ var DataTable = (function (Sortable) {
 
     var _trimmedEndIndex = trimmedEndIndex;
 
+    var _trimmedEndIndex$1 = /*#__PURE__*/Object.freeze({
+        default: _trimmedEndIndex,
+        __moduleExports: _trimmedEndIndex
+    });
+
+    var trimmedEndIndex$1 = ( _trimmedEndIndex$1 && _trimmedEndIndex ) || _trimmedEndIndex$1;
+
     /** Used to match leading whitespace. */
     var reTrimStart = /^\s+/;
 
@@ -352,11 +359,16 @@ var DataTable = (function (Sortable) {
      */
     function baseTrim(string) {
       return string
-        ? string.slice(0, _trimmedEndIndex(string) + 1).replace(reTrimStart, '')
+        ? string.slice(0, trimmedEndIndex$1(string) + 1).replace(reTrimStart, '')
         : string;
     }
 
     var _baseTrim = baseTrim;
+
+    var _baseTrim$1 = /*#__PURE__*/Object.freeze({
+        default: _baseTrim,
+        __moduleExports: _baseTrim
+    });
 
     /** Built-in value references. */
     var Symbol = _root.Symbol;
@@ -485,6 +497,13 @@ var DataTable = (function (Sortable) {
 
     var isObjectLike_1 = isObjectLike;
 
+    var isObjectLike$1 = /*#__PURE__*/Object.freeze({
+        default: isObjectLike_1,
+        __moduleExports: isObjectLike_1
+    });
+
+    var isObjectLike$2 = ( isObjectLike$1 && isObjectLike_1 ) || isObjectLike$1;
+
     /** `Object#toString` result references. */
     var symbolTag = '[object Symbol]';
 
@@ -507,10 +526,12 @@ var DataTable = (function (Sortable) {
      */
     function isSymbol(value) {
       return typeof value == 'symbol' ||
-        (isObjectLike_1(value) && _baseGetTag(value) == symbolTag);
+        (isObjectLike$2(value) && _baseGetTag(value) == symbolTag);
     }
 
     var isSymbol_1 = isSymbol;
+
+    var baseTrim$1 = ( _baseTrim$1 && _baseTrim ) || _baseTrim$1;
 
     /** Used as references for various `Number` constants. */
     var NAN = 0 / 0;
@@ -564,7 +585,7 @@ var DataTable = (function (Sortable) {
       if (typeof value != 'string') {
         return value === 0 ? value : +value;
       }
-      value = _baseTrim(value);
+      value = baseTrim$1(value);
       var isBinary = reIsBinary.test(value);
       return (isBinary || reIsOctal.test(value))
         ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
@@ -863,21 +884,19 @@ var DataTable = (function (Sortable) {
 
     var isFunction_1 = isFunction;
 
+    var isFunction$1 = /*#__PURE__*/Object.freeze({
+        default: isFunction_1,
+        __moduleExports: isFunction_1
+    });
+
     /** Used to detect overreaching core-js shims. */
     var coreJsData = _root['__core-js_shared__'];
 
     var _coreJsData = coreJsData;
 
-    var _coreJsData$1 = /*#__PURE__*/Object.freeze({
-        default: _coreJsData,
-        __moduleExports: _coreJsData
-    });
-
-    var coreJsData$1 = ( _coreJsData$1 && _coreJsData ) || _coreJsData$1;
-
     /** Used to detect methods masquerading as native. */
     var maskSrcKey = (function() {
-      var uid = /[^.]+$/.exec(coreJsData$1 && coreJsData$1.keys && coreJsData$1.keys.IE_PROTO || '');
+      var uid = /[^.]+$/.exec(_coreJsData && _coreJsData.keys && _coreJsData.keys.IE_PROTO || '');
       return uid ? ('Symbol(src)_1.' + uid) : '';
     }());
 
@@ -921,6 +940,8 @@ var DataTable = (function (Sortable) {
 
     var _toSource = toSource;
 
+    var isFunction$2 = ( isFunction$1 && isFunction_1 ) || isFunction$1;
+
     /**
      * Used to match `RegExp`
      * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
@@ -958,7 +979,7 @@ var DataTable = (function (Sortable) {
       if (!isObject_1(value) || _isMasked(value)) {
         return false;
       }
-      var pattern = isFunction_1(value) ? reIsNative : reIsHostCtor;
+      var pattern = isFunction$2(value) ? reIsNative : reIsHostCtor;
       return pattern.test(_toSource(value));
     }
 
@@ -998,6 +1019,13 @@ var DataTable = (function (Sortable) {
 
     var _nativeCreate = nativeCreate;
 
+    var _nativeCreate$1 = /*#__PURE__*/Object.freeze({
+        default: _nativeCreate,
+        __moduleExports: _nativeCreate
+    });
+
+    var nativeCreate$1 = ( _nativeCreate$1 && _nativeCreate ) || _nativeCreate$1;
+
     /**
      * Removes all key-value entries from the hash.
      *
@@ -1006,7 +1034,7 @@ var DataTable = (function (Sortable) {
      * @memberOf Hash
      */
     function hashClear() {
-      this.__data__ = _nativeCreate ? _nativeCreate(null) : {};
+      this.__data__ = nativeCreate$1 ? nativeCreate$1(null) : {};
       this.size = 0;
     }
 
@@ -1050,7 +1078,7 @@ var DataTable = (function (Sortable) {
      */
     function hashGet(key) {
       var data = this.__data__;
-      if (_nativeCreate) {
+      if (nativeCreate$1) {
         var result = data[key];
         return result === HASH_UNDEFINED ? undefined : result;
       }
@@ -1076,7 +1104,7 @@ var DataTable = (function (Sortable) {
      */
     function hashHas(key) {
       var data = this.__data__;
-      return _nativeCreate ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
+      return nativeCreate$1 ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
     }
 
     var _hashHas = hashHas;
@@ -1097,7 +1125,7 @@ var DataTable = (function (Sortable) {
     function hashSet(key, value) {
       var data = this.__data__;
       this.size += this.has(key) ? 0 : 1;
-      data[key] = (_nativeCreate && value === undefined) ? HASH_UNDEFINED$1 : value;
+      data[key] = (nativeCreate$1 && value === undefined) ? HASH_UNDEFINED$1 : value;
       return this;
     }
 
@@ -1182,6 +1210,13 @@ var DataTable = (function (Sortable) {
 
     var eq_1 = eq;
 
+    var eq$1 = /*#__PURE__*/Object.freeze({
+        default: eq_1,
+        __moduleExports: eq_1
+    });
+
+    var eq$2 = ( eq$1 && eq_1 ) || eq$1;
+
     /**
      * Gets the index at which the `key` is found in `array` of key-value pairs.
      *
@@ -1193,7 +1228,7 @@ var DataTable = (function (Sortable) {
     function assocIndexOf(array, key) {
       var length = array.length;
       while (length--) {
-        if (eq_1(array[length][0], key)) {
+        if (eq$2(array[length][0], key)) {
           return length;
         }
       }
@@ -1201,6 +1236,13 @@ var DataTable = (function (Sortable) {
     }
 
     var _assocIndexOf = assocIndexOf;
+
+    var _assocIndexOf$1 = /*#__PURE__*/Object.freeze({
+        default: _assocIndexOf,
+        __moduleExports: _assocIndexOf
+    });
+
+    var assocIndexOf$1 = ( _assocIndexOf$1 && _assocIndexOf ) || _assocIndexOf$1;
 
     /** Used for built-in method references. */
     var arrayProto = Array.prototype;
@@ -1219,7 +1261,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheDelete(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         return false;
@@ -1247,7 +1289,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheGet(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       return index < 0 ? undefined : data[index][1];
     }
@@ -1264,7 +1306,7 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
      */
     function listCacheHas(key) {
-      return _assocIndexOf(this.__data__, key) > -1;
+      return assocIndexOf$1(this.__data__, key) > -1;
     }
 
     var _listCacheHas = listCacheHas;
@@ -1281,7 +1323,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheSet(key, value) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         ++this.size;
@@ -1293,6 +1335,13 @@ var DataTable = (function (Sortable) {
     }
 
     var _listCacheSet = listCacheSet;
+
+    var _listCacheSet$1 = /*#__PURE__*/Object.freeze({
+        default: _listCacheSet,
+        __moduleExports: _listCacheSet
+    });
+
+    var listCacheSet$1 = ( _listCacheSet$1 && _listCacheSet ) || _listCacheSet$1;
 
     /**
      * Creates an list cache object.
@@ -1317,7 +1366,7 @@ var DataTable = (function (Sortable) {
     ListCache.prototype['delete'] = _listCacheDelete;
     ListCache.prototype.get = _listCacheGet;
     ListCache.prototype.has = _listCacheHas;
-    ListCache.prototype.set = _listCacheSet;
+    ListCache.prototype.set = listCacheSet$1;
 
     var _ListCache = ListCache;
 
@@ -1331,7 +1380,14 @@ var DataTable = (function (Sortable) {
 
     var _Map = Map;
 
+    var _Map$1 = /*#__PURE__*/Object.freeze({
+        default: _Map,
+        __moduleExports: _Map
+    });
+
     var ListCache$1 = ( _ListCache$1 && _ListCache ) || _ListCache$1;
+
+    var Map$1 = ( _Map$1 && _Map ) || _Map$1;
 
     /**
      * Removes all key-value entries from the map.
@@ -1344,7 +1400,7 @@ var DataTable = (function (Sortable) {
       this.size = 0;
       this.__data__ = {
         'hash': new _Hash,
-        'map': new (_Map || ListCache$1),
+        'map': new (Map$1 || ListCache$1),
         'string': new _Hash
       };
     }
@@ -1391,13 +1447,6 @@ var DataTable = (function (Sortable) {
 
     var _getMapData = getMapData;
 
-    var _getMapData$1 = /*#__PURE__*/Object.freeze({
-        default: _getMapData,
-        __moduleExports: _getMapData
-    });
-
-    var getMapData$1 = ( _getMapData$1 && _getMapData ) || _getMapData$1;
-
     /**
      * Removes `key` and its value from the map.
      *
@@ -1408,17 +1457,12 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if the entry was removed, else `false`.
      */
     function mapCacheDelete(key) {
-      var result = getMapData$1(this, key)['delete'](key);
+      var result = _getMapData(this, key)['delete'](key);
       this.size -= result ? 1 : 0;
       return result;
     }
 
     var _mapCacheDelete = mapCacheDelete;
-
-    var _mapCacheDelete$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheDelete,
-        __moduleExports: _mapCacheDelete
-    });
 
     /**
      * Gets the map value for `key`.
@@ -1430,7 +1474,7 @@ var DataTable = (function (Sortable) {
      * @returns {*} Returns the entry value.
      */
     function mapCacheGet(key) {
-      return getMapData$1(this, key).get(key);
+      return _getMapData(this, key).get(key);
     }
 
     var _mapCacheGet = mapCacheGet;
@@ -1445,7 +1489,7 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
      */
     function mapCacheHas(key) {
-      return getMapData$1(this, key).has(key);
+      return _getMapData(this, key).has(key);
     }
 
     var _mapCacheHas = mapCacheHas;
@@ -1461,7 +1505,7 @@ var DataTable = (function (Sortable) {
      * @returns {Object} Returns the map cache instance.
      */
     function mapCacheSet(key, value) {
-      var data = getMapData$1(this, key),
+      var data = _getMapData(this, key),
           size = data.size;
 
       data.set(key, value);
@@ -1470,8 +1514,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _mapCacheSet = mapCacheSet;
-
-    var mapCacheDelete$1 = ( _mapCacheDelete$1 && _mapCacheDelete ) || _mapCacheDelete$1;
 
     /**
      * Creates a map cache object to store key-value pairs.
@@ -1493,12 +1535,17 @@ var DataTable = (function (Sortable) {
 
     // Add methods to `MapCache`.
     MapCache.prototype.clear = _mapCacheClear;
-    MapCache.prototype['delete'] = mapCacheDelete$1;
+    MapCache.prototype['delete'] = _mapCacheDelete;
     MapCache.prototype.get = _mapCacheGet;
     MapCache.prototype.has = _mapCacheHas;
     MapCache.prototype.set = _mapCacheSet;
 
     var _MapCache = MapCache;
+
+    var _MapCache$1 = /*#__PURE__*/Object.freeze({
+        default: _MapCache,
+        __moduleExports: _MapCache
+    });
 
     /** Used to stand-in for `undefined` hash values. */
     var HASH_UNDEFINED$2 = '__lodash_hash_undefined__';
@@ -1535,6 +1582,15 @@ var DataTable = (function (Sortable) {
 
     var _setCacheHas = setCacheHas;
 
+    var _setCacheHas$1 = /*#__PURE__*/Object.freeze({
+        default: _setCacheHas,
+        __moduleExports: _setCacheHas
+    });
+
+    var MapCache$1 = ( _MapCache$1 && _MapCache ) || _MapCache$1;
+
+    var setCacheHas$1 = ( _setCacheHas$1 && _setCacheHas ) || _setCacheHas$1;
+
     /**
      *
      * Creates an array cache object to store unique values.
@@ -1547,7 +1603,7 @@ var DataTable = (function (Sortable) {
       var index = -1,
           length = values == null ? 0 : values.length;
 
-      this.__data__ = new _MapCache;
+      this.__data__ = new MapCache$1;
       while (++index < length) {
         this.add(values[index]);
       }
@@ -1555,7 +1611,7 @@ var DataTable = (function (Sortable) {
 
     // Add methods to `SetCache`.
     SetCache.prototype.add = SetCache.prototype.push = _setCacheAdd;
-    SetCache.prototype.has = _setCacheHas;
+    SetCache.prototype.has = setCacheHas$1;
 
     var _SetCache = SetCache;
 
@@ -1654,6 +1710,11 @@ var DataTable = (function (Sortable) {
 
     var _arrayIncludes = arrayIncludes;
 
+    var _arrayIncludes$1 = /*#__PURE__*/Object.freeze({
+        default: _arrayIncludes,
+        __moduleExports: _arrayIncludes
+    });
+
     /**
      * This function is like `arrayIncludes` except that it accepts a comparator.
      *
@@ -1690,6 +1751,11 @@ var DataTable = (function (Sortable) {
     }
 
     var _cacheHas = cacheHas;
+
+    var _cacheHas$1 = /*#__PURE__*/Object.freeze({
+        default: _cacheHas,
+        __moduleExports: _cacheHas
+    });
 
     /* Built-in method references that are verified to be native. */
     var Set = _getNative(_root, 'Set');
@@ -1756,6 +1822,10 @@ var DataTable = (function (Sortable) {
 
     var _createSet = createSet;
 
+    var arrayIncludes$1 = ( _arrayIncludes$1 && _arrayIncludes ) || _arrayIncludes$1;
+
+    var cacheHas$1 = ( _cacheHas$1 && _cacheHas ) || _cacheHas$1;
+
     /** Used as the size to enable large array optimizations. */
     var LARGE_ARRAY_SIZE = 200;
 
@@ -1770,7 +1840,7 @@ var DataTable = (function (Sortable) {
      */
     function baseUniq(array, iteratee, comparator) {
       var index = -1,
-          includes = _arrayIncludes,
+          includes = arrayIncludes$1,
           length = array.length,
           isCommon = true,
           result = [],
@@ -1786,7 +1856,7 @@ var DataTable = (function (Sortable) {
           return _setToArray(set);
         }
         isCommon = false;
-        includes = _cacheHas;
+        includes = cacheHas$1;
         seen = new _SetCache;
       }
       else {
@@ -3509,7 +3579,43 @@ var DataTable = (function (Sortable) {
             } else if (typeof value === 'string' && (value.endsWith('.png') || value.endsWith('.jpg') || value.endsWith('.jpeg') || value.endsWith('.gif') || value.endsWith('.svg') || value.endsWith('.webp') || value.endsWith('.bmp'))) {
                 contentHTML = `<img src="${value}" alt="${value}" style="max-height: 24px; cursor: pointer; margin: auto; display: block;" onclick="frappe.msgprint({ title: __('Image'), message: '<div style=&quot;text-align:center;&quot;><img src=&quot;${value}&quot; style=&quot;max-width: 100%;&quot;></div>' });">`;
             } else if (docfield && docfield.fieldtype === 'Select' && value != '') {
-                contentHTML = `<span class="filterable indicator-pill ${frappe.utils.guess_colour(value)} ellipsis"
+                // Use cached color or compute once
+                const cacheKey = `${docfield.parent}:${fieldname}:${value}`;
+                if (!window._dtSelectColourCache) {
+                    window._dtSelectColourCache = {};
+                }
+                let colour = window._dtSelectColourCache[cacheKey];
+                if (!colour) {
+                    // 1. Try docfield options (format: "Option|color")
+                    if (docfield.options) {
+                        const options = docfield.options.split('\n');
+                        for (const opt of options) {
+                            const parts = opt.split('|');
+                            if (parts[0].trim() === value && parts[1]) {
+                                colour = parts[1].trim();
+                                break;
+                            }
+                        }
+                    }
+                    // 2. Try listview_settings indicator if available
+                    if (!colour && docfield.parent && frappe.listview_settings &&
+                        frappe.listview_settings[docfield.parent] &&
+                        frappe.listview_settings[docfield.parent].get_indicator) {
+                        try {
+                            const fakeDoc = { [fieldname]: value, docstatus: 0 };
+                            const indicator = frappe.listview_settings[docfield.parent].get_indicator(fakeDoc);
+                            if (indicator && indicator[1]) {
+                                colour = indicator[1];
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    // 3. Fallback to guess_colour
+                    if (!colour) {
+                        colour = frappe.utils.guess_colour(value);
+                    }
+                    window._dtSelectColourCache[cacheKey] = colour;
+                }
+                contentHTML = `<span class="filterable indicator-pill ${colour} ellipsis"
                             data-filter="${fieldname},=,${value}">
                             <span class="ellipsis"> ${__(value)} </span>
                         </span>`;
@@ -6418,6 +6524,15 @@ var DataTable = (function (Sortable) {
                 });
 
                 data.rows = formattedRows;
+
+                // Hook: Allow cur_list to add additional rows (like totals row)
+                if (cur_list && typeof cur_list.add_totals_to_filtered_rows === 'function') {
+                    const totalsRow = cur_list.add_totals_to_filtered_rows(formattedRows, data.columns);
+                    if (totalsRow) {
+                        formattedRows.push(totalsRow);
+                        data.rows = formattedRows;
+                    }
+                }
 
                 if (typeof data.refresh === 'function') {
                     data.refresh(formattedRows);

@@ -3468,7 +3468,43 @@ class CellManager {
         } else if (typeof value === 'string' && (value.endsWith('.png') || value.endsWith('.jpg') || value.endsWith('.jpeg') || value.endsWith('.gif') || value.endsWith('.svg') || value.endsWith('.webp') || value.endsWith('.bmp'))) {
             contentHTML = `<img src="${value}" alt="${value}" style="max-height: 24px; cursor: pointer; margin: auto; display: block;" onclick="frappe.msgprint({ title: __('Image'), message: '<div style=&quot;text-align:center;&quot;><img src=&quot;${value}&quot; style=&quot;max-width: 100%;&quot;></div>' });">`;
         } else if (docfield && docfield.fieldtype === 'Select' && value != '') {
-            contentHTML = `<span class="filterable indicator-pill ${frappe.utils.guess_colour(value)} ellipsis"
+            // Use cached color or compute once
+            const cacheKey = `${docfield.parent}:${fieldname}:${value}`;
+            if (!window._dtSelectColourCache) {
+                window._dtSelectColourCache = {};
+            }
+            let colour = window._dtSelectColourCache[cacheKey];
+            if (!colour) {
+                // 1. Try docfield options (format: "Option|color")
+                if (docfield.options) {
+                    const options = docfield.options.split('\n');
+                    for (const opt of options) {
+                        const parts = opt.split('|');
+                        if (parts[0].trim() === value && parts[1]) {
+                            colour = parts[1].trim();
+                            break;
+                        }
+                    }
+                }
+                // 2. Try listview_settings indicator if available
+                if (!colour && docfield.parent && frappe.listview_settings &&
+                    frappe.listview_settings[docfield.parent] &&
+                    frappe.listview_settings[docfield.parent].get_indicator) {
+                    try {
+                        const fakeDoc = { [fieldname]: value, docstatus: 0 };
+                        const indicator = frappe.listview_settings[docfield.parent].get_indicator(fakeDoc);
+                        if (indicator && indicator[1]) {
+                            colour = indicator[1];
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+                // 3. Fallback to guess_colour
+                if (!colour) {
+                    colour = frappe.utils.guess_colour(value);
+                }
+                window._dtSelectColourCache[cacheKey] = colour;
+            }
+            contentHTML = `<span class="filterable indicator-pill ${colour} ellipsis"
                             data-filter="${fieldname},=,${value}">
                             <span class="ellipsis"> ${__(value)} </span>
                         </span>`;
@@ -6377,6 +6413,15 @@ function filterRows(rows, filters, data, start = 0, page_length = 10000) {
             });
 
             data.rows = formattedRows;
+
+            // Hook: Allow cur_list to add additional rows (like totals row)
+            if (cur_list && typeof cur_list.add_totals_to_filtered_rows === 'function') {
+                const totalsRow = cur_list.add_totals_to_filtered_rows(formattedRows, data.columns);
+                if (totalsRow) {
+                    formattedRows.push(totalsRow);
+                    data.rows = formattedRows;
+                }
+            }
 
             if (typeof data.refresh === 'function') {
                 data.refresh(formattedRows);
