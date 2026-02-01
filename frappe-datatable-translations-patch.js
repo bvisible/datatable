@@ -1,0 +1,55 @@
+// Patch pour ajouter les traductions manquantes dans Frappe
+// À ajouter dans /frappe/public/js/frappe/utils/datatable.js
+
+frappe.provide("frappe.utils.datatable");
+
+frappe.utils.datatable.get_translations = function () {
+	let translations = {};
+	translations[frappe.boot.lang] = {
+		"Sort Ascending": __("Sort Ascending"),
+		"Sort Descending": __("Sort Descending"),
+		"Reset sorting": __("Reset sorting"),
+		"Remove column": __("Remove column"),
+		"No Data": __("No Data"),
+		"{count} cells copied": {
+			1: __("{count} cell copied"),
+			default: __("{count} cells copied"),
+		},
+		"{count} rows selected": {
+			1: __("{count} row selected"),
+			default: __("{count} rows selected"),
+		},
+		// Nouvelles traductions pour le lazy loading et la recherche
+		"Search...": __("Search..."),
+		"Show more": __("Show more"),
+		"Showing": __("Showing"),
+		
+		// Traductions pour les statuts courants
+		"Open": __("Open"),
+		"Closed": __("Closed"),
+		"Pending": __("Pending"),
+		"Draft": __("Draft"),
+		"Submitted": __("Submitted"),
+		"Cancelled": __("Cancelled"),
+		"Completed": __("Completed"),
+		"Active": __("Active"),
+		"Inactive": __("Inactive"),
+		"Paid": __("Paid"),
+		"Unpaid": __("Unpaid"),
+		"Approved": __("Approved"),
+		"Rejected": __("Rejected"),
+		"In Progress": __("In Progress"),
+		"On Hold": __("On Hold"),
+		"Yes": __("Yes"),
+		"No": __("No"),
+		"Consolidated": __("Consolidated"),
+		"Credit Note Issued": __("Credit Note Issued"),
+		"Overdue": __("Overdue"),
+		"Overdue and Discounted": __("Overdue and Discounted"),
+		"Return": __("Return"),
+		"Partly Paid": __("Partly Paid"),
+		"Unpaid and Discounted": __("Unpaid and Discounted")
+	};
+
+	return translations;
+};

@@ -43,3 +43,5 @@ cypress/videos
 
 
 .env
+FRAPPE_LANGUAGE_INTEGRATION.md
+CLAUDE.md
