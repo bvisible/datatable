@@ -288,7 +288,9 @@
 .dt-dropdown__list {
         position: fixed;
         min-width: 8rem;
-        z-index: 1;
+        /* Must sit above sticky columns (.dt-cell--sticky-top has z-index: 4),
+           otherwise the frozen first column overlaps the open column menu. */
+        z-index: 100;
         cursor: pointer;
         background-color: #fff;
         background-color: var(--dt-cell-bg);
