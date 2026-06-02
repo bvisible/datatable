@@ -41,6 +41,7 @@ export default class Style {
 
     bindScrollHeader() {
         this._settingHeaderPosition = false;
+        this.updateStickyTopPositions(0);
 
         $.on(this.bodyScrollable, 'scroll', (e) => {
             if (this._settingHeaderPosition) return;
@@ -48,7 +49,8 @@ export default class Style {
             this._settingHeaderPosition = true;
 
             requestAnimationFrame(() => {
-                const left = -e.target.scrollLeft;
+                const scrollLeft = e.target.scrollLeft;
+                const left = -scrollLeft;
 
                 $.style(this.header, {
                     transform: `translateX(${left}px)`
@@ -56,6 +58,7 @@ export default class Style {
                 $.style(this.footer, {
                     transform: `translateX(${left}px)`
                 });
+                this.updateStickyTopPositions(scrollLeft);
                 this._settingHeaderPosition = false;
                 if (this.instance.noData) {
                     $.style($('.no-data-message'), {
@@ -153,6 +156,8 @@ export default class Style {
         this.setupColumnWidth();
         this.distributeRemainingWidth();
         this.setColumnStyle();
+        this.setStickyColumnStyle();
+        this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
         this.setBodyStyle();
     }
 
@@ -310,6 +315,8 @@ export default class Style {
                 this.columnmanager.setColumnHeaderWidth(column.colIndex);
                 this.columnmanager.setColumnWidth(column.colIndex);
             });
+        this.setStickyColumnStyle();
+        this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
     }
 
     setBodyStyle() {
@@ -369,6 +376,56 @@ export default class Style {
         colIndex = +colIndex;
         if (colIndex < 0) return null;
         return $(`.dt-cell--col-${colIndex}`, this.header);
+    }
+
+    setStickyColumnStyle() {
+        if (!this.datamanager || !this.datamanager.getColumns) return;
+
+        const stickySelectors = [];
+        let stickyOffset = 0;
+        let normalOffset = 0;
+
+        this.datamanager.getColumns().forEach((column) => {
+            const $headerCell = this.getColumnHeaderElement(column.colIndex);
+            const renderedWidth = $headerCell ? $headerCell.offsetWidth : column.width;
+
+            if (column.sticky) {
+                const selector = `.dt-cell--col-${column.colIndex}.dt-cell--sticky`;
+                const style = {
+                    left: `${stickyOffset}px`
+                };
+
+                column.stickyLeft = stickyOffset;
+                column.stickyScrollTrigger = normalOffset - stickyOffset;
+                column.renderedWidth = renderedWidth;
+                this.setStyle(selector, style);
+                stickySelectors.push(selector);
+                stickyOffset += renderedWidth;
+            }
+            normalOffset += renderedWidth;
+        });
+
+        const staleSelectors = (this._stickySelectors || [])
+            .filter(selector => !stickySelectors.includes(selector));
+
+        staleSelectors.forEach(selector => this.removeStyle(selector));
+        this._stickySelectors = stickySelectors;
+    }
+
+    updateStickyTopPositions(scrollLeft) {
+        if (!this.datamanager || !this.datamanager.getColumns) return;
+
+        const stickyColumns = this.datamanager.getColumns().filter(column => column.sticky);
+
+        stickyColumns.forEach((column) => {
+            const trigger = Math.max(0, column.stickyScrollTrigger || 0);
+            const compensation = Math.max(0, scrollLeft - trigger);
+            const cells = $.each(`.dt-cell--col-${column.colIndex}.dt-cell--sticky-top`, this.wrapper) || [];
+
+            $.style(cells, {
+                transform: compensation ? `translateX(${compensation}px)` : ''
+            });
+        });
     }
 
     getRowIndexColumnWidth() {

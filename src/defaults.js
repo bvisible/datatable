@@ -30,6 +30,22 @@ export default function getDefaultOptions(instance) {
                 action: function (column) {
                     this.removeColumn(column.colIndex);
                 }
+            },
+            {
+                label: instance.translate('Freeze'),
+                stickyAction: 'stick',
+                display: 'hidden',
+                action: function (column) {
+                    this.setColumnSticky(column.colIndex, true);
+                }
+            },
+            {
+                label: instance.translate('Unfreeze'),
+                stickyAction: 'unstick',
+                display: 'hidden',
+                action: function (column) {
+                    this.setColumnSticky(column.colIndex, false);
+                }
             }
         ],
         events: {
@@ -54,6 +70,7 @@ export default function getDefaultOptions(instance) {
         freezeMessage: '',
         getEditor: null,
         serialNoColumn: true,
+        serialNoColumnLabel: '',
         checkboxColumn: false,
         clusterize: true,
         logs: false,

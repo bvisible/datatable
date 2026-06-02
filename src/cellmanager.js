@@ -33,6 +33,7 @@ export default class CellManager {
         this.bindKeyboardSelection();
         this.bindCopyCellContents();
         this.bindMouseEvents();
+        this.bindWheelEvents();
         this.bindTreeEvents();
     }
 
@@ -81,6 +82,7 @@ export default class CellManager {
             }
 
             this.focusCell($cell);
+            sessionStorage.setItem('dt-last-nav-method', 'key');
             return true;
         };
 
@@ -187,6 +189,12 @@ export default class CellManager {
         };
 
         $.on(this.bodyScrollable, 'mousemove', '.dt-cell', throttle(selectArea, 50));
+    }
+
+    bindWheelEvents() {
+        $.on(this.bodyScrollable, 'wheel', (e) => {
+            sessionStorage.setItem('dt-last-nav-method', 'scroll');
+        });
     }
 
     bindTreeEvents() {
@@ -313,11 +321,13 @@ export default class CellManager {
         // this function is called after hyperlist renders the rows after scroll,
         // focusCell calls clearSelection which resets the area selection
         // so a flag to skip it
-        // we also skip DOM focus and scroll to cell
-        // because it fights with the user scroll
+        // we skip scroll to cell
+        // and also skip DOM focus (if user is scrolling) because it fights with the user scroll
+        const skipDOMFocus = sessionStorage.getItem('dt-last-nav-method') !== 'key';
+
         this.focusCell($cell, {
+            skipDOMFocus,
             skipClearSelection: 1,
-            skipDOMFocus: 1,
             skipScrollToCell: 1
         });
     }
@@ -714,6 +724,7 @@ export default class CellManager {
         }
 
         this.focusCell($cell);
+        sessionStorage.setItem('dt-last-nav-method', 'key');
         return true;
     }
 
@@ -812,8 +823,15 @@ export default class CellManager {
         });
 
         const row = this.datamanager.getRow(rowIndex);
+        const column = cell.column || this.datamanager.getColumn(colIndex) || {};
 
         const isBodyCell = !(isHeader || isFilter || isTotalRow);
+        const isSticky = Boolean(column.sticky);
+        const stickyColumns = this.datamanager.getColumns().filter(col => col.sticky);
+        const lastStickyColumn = stickyColumns[stickyColumns.length - 1];
+        const isLastStickyColumn = isSticky &&
+            lastStickyColumn &&
+            lastStickyColumn.colIndex === colIndex;
 
         const className = [
             'dt-cell',
@@ -823,7 +841,10 @@ export default class CellManager {
             isHeader ? 'dt-cell--header' : '',
             isHeader ? `dt-cell--header-${colIndex}` : '',
             isFilter ? 'dt-cell--filter' : '',
-            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
+            isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
+            isSticky ? 'dt-cell--sticky' : '',
+            isSticky && !isBodyCell ? 'dt-cell--sticky-top' : '',
+            isLastStickyColumn ? 'dt-cell--sticky-last' : ''
         ].join(' ');
 
         return `

@@ -63,6 +63,7 @@ export default class DataManager {
                 sortable: false,
                 focusable: false,
                 dropdown: false,
+                sticky: true,
                 width: 32
             };
             this.columns.push(cell);
@@ -71,17 +72,15 @@ export default class DataManager {
         if (this.options.serialNoColumn && !this.hasColumnById('_rowIndex')) {
             let cell = {
                 id: '_rowIndex',
-                content: '',
+                content: this.options.serialNoColumnLabel || '',
                 align: 'center',
                 editable: false,
-                resizable: false,
+                resizable: true,
                 focusable: false,
                 dropdown: false,
-                width: 60
+                width: 60,
+                sticky: true
             };
-            if (this.options.data.length > 1000) {
-                cell.resizable = true;
-            }
             this.columns.push(cell);
         }
     }

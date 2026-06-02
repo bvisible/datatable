@@ -222,6 +222,10 @@ class DataTable {
         this.columnmanager.removeColumn(colIndex);
     }
 
+    setColumnSticky(colIndex, sticky) {
+        this.columnmanager.setColumnSticky(colIndex, sticky);
+    }
+
     scrollToLastColumn() {
         this.datatableWrapper.scrollLeft = 9999;
     }

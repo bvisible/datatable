@@ -19,6 +19,7 @@
     --dt-header-cell-bg: #fff;
     --dt-header-cell-bg: var(--dt-cell-bg);
     --dt-no-data-message-width: 90px;
+    --dt-scroll-left: 0px;
 }
 
 .datatable *, .datatable *::after, .datatable *::before {
@@ -102,7 +103,7 @@
         display: none;
     }
 
-.dt-row:last-child:not(.dt-row-filter) {
+.dt-row:last-child:not(.dt-row-filter) .dt-cell {
         border-bottom: 1px solid #d1d8dd;
         border-bottom: 1px solid var(--dt-border-color);
     }
@@ -111,7 +112,7 @@
     border: 1px solid #d1d8dd;
     border: 1px solid var(--dt-border-color);
     border-bottom: none;
-    border-right: none;
+    border-left: none;
     position: relative;
     outline: none;
     padding: 0;
@@ -129,7 +130,13 @@
        -moz-user-select: none;
         -ms-user-select: none;
             user-select: none;
+
 }
+
+.dt-cell:first-child {
+        border-left: 1px solid #d1d8dd;
+        border-left: 1px solid var(--dt-border-color);
+    }
 
 .dt-cell__content {
         padding: 0.5rem;
@@ -219,6 +226,29 @@
 .dt-cell:last-child {
         border-right: 1px solid #d1d8dd;
         border-right: 1px solid var(--dt-border-color);
+    }
+
+.dt-cell--sticky {
+        position: -webkit-sticky;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+    }
+
+.dt-cell--sticky-top {
+        z-index: 4;
+        will-change: transform;
+    }
+
+.dt-cell--sticky-last::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -1px;
+        width: 8px;
+        height: 100%;
+        pointer-events: none;
+        box-shadow: 4px 0 6px -4px rgba(15, 23, 42, 0.2);
     }
 
 .datatable[dir=rtl] .dt-cell__resize-handle {

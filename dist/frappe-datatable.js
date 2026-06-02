@@ -379,6 +379,11 @@ var DataTable = (function (Sortable) {
 
     var _baseTrim = baseTrim;
 
+    var _baseTrim$1 = /*#__PURE__*/Object.freeze({
+        default: _baseTrim,
+        __moduleExports: _baseTrim
+    });
+
     /** Built-in value references. */
     var Symbol = root$1.Symbol;
 
@@ -451,13 +456,6 @@ var DataTable = (function (Sortable) {
 
     var _objectToString = objectToString;
 
-    var _objectToString$1 = /*#__PURE__*/Object.freeze({
-        default: _objectToString,
-        __moduleExports: _objectToString
-    });
-
-    var objectToString$1 = ( _objectToString$1 && _objectToString ) || _objectToString$1;
-
     /** `Object#toString` result references. */
     var nullTag = '[object Null]',
         undefinedTag = '[object Undefined]';
@@ -478,7 +476,7 @@ var DataTable = (function (Sortable) {
       }
       return (symToStringTag$1 && symToStringTag$1 in Object(value))
         ? _getRawTag(value)
-        : objectToString$1(value);
+        : _objectToString(value);
     }
 
     var _baseGetTag = baseGetTag;
@@ -540,6 +538,8 @@ var DataTable = (function (Sortable) {
 
     var isSymbol_1 = isSymbol;
 
+    var baseTrim$1 = ( _baseTrim$1 && _baseTrim ) || _baseTrim$1;
+
     /** Used as references for various `Number` constants. */
     var NAN = 0 / 0;
 
@@ -592,7 +592,7 @@ var DataTable = (function (Sortable) {
       if (typeof value != 'string') {
         return value === 0 ? value : +value;
       }
-      value = _baseTrim(value);
+      value = baseTrim$1(value);
       var isBinary = reIsBinary.test(value);
       return (isBinary || reIsOctal.test(value))
         ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
@@ -891,21 +891,19 @@ var DataTable = (function (Sortable) {
 
     var isFunction_1 = isFunction;
 
+    var isFunction$1 = /*#__PURE__*/Object.freeze({
+        default: isFunction_1,
+        __moduleExports: isFunction_1
+    });
+
     /** Used to detect overreaching core-js shims. */
     var coreJsData = root$1['__core-js_shared__'];
 
     var _coreJsData = coreJsData;
 
-    var _coreJsData$1 = /*#__PURE__*/Object.freeze({
-        default: _coreJsData,
-        __moduleExports: _coreJsData
-    });
-
-    var coreJsData$1 = ( _coreJsData$1 && _coreJsData ) || _coreJsData$1;
-
     /** Used to detect methods masquerading as native. */
     var maskSrcKey = (function() {
-      var uid = /[^.]+$/.exec(coreJsData$1 && coreJsData$1.keys && coreJsData$1.keys.IE_PROTO || '');
+      var uid = /[^.]+$/.exec(_coreJsData && _coreJsData.keys && _coreJsData.keys.IE_PROTO || '');
       return uid ? ('Symbol(src)_1.' + uid) : '';
     }());
 
@@ -921,11 +919,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _isMasked = isMasked;
-
-    var _isMasked$1 = /*#__PURE__*/Object.freeze({
-        default: _isMasked,
-        __moduleExports: _isMasked
-    });
 
     /** Used for built-in method references. */
     var funcProto = Function.prototype;
@@ -954,14 +947,7 @@ var DataTable = (function (Sortable) {
 
     var _toSource = toSource;
 
-    var _toSource$1 = /*#__PURE__*/Object.freeze({
-        default: _toSource,
-        __moduleExports: _toSource
-    });
-
-    var isMasked$1 = ( _isMasked$1 && _isMasked ) || _isMasked$1;
-
-    var toSource$1 = ( _toSource$1 && _toSource ) || _toSource$1;
+    var isFunction$2 = ( isFunction$1 && isFunction_1 ) || isFunction$1;
 
     /**
      * Used to match `RegExp`
@@ -997,11 +983,11 @@ var DataTable = (function (Sortable) {
      *  else `false`.
      */
     function baseIsNative(value) {
-      if (!isObject_1(value) || isMasked$1(value)) {
+      if (!isObject_1(value) || _isMasked(value)) {
         return false;
       }
-      var pattern = isFunction_1(value) ? reIsNative : reIsHostCtor;
-      return pattern.test(toSource$1(value));
+      var pattern = isFunction$2(value) ? reIsNative : reIsHostCtor;
+      return pattern.test(_toSource(value));
     }
 
     var _baseIsNative = baseIsNative;
@@ -1072,11 +1058,6 @@ var DataTable = (function (Sortable) {
 
     var _hashDelete = hashDelete;
 
-    var _hashDelete$1 = /*#__PURE__*/Object.freeze({
-        default: _hashDelete,
-        __moduleExports: _hashDelete
-    });
-
     /** Used to stand-in for `undefined` hash values. */
     var HASH_UNDEFINED = '__lodash_hash_undefined__';
 
@@ -1105,11 +1086,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _hashGet = hashGet;
-
-    var _hashGet$1 = /*#__PURE__*/Object.freeze({
-        default: _hashGet,
-        __moduleExports: _hashGet
-    });
 
     /** Used for built-in method references. */
     var objectProto$4 = Object.prototype;
@@ -1155,10 +1131,6 @@ var DataTable = (function (Sortable) {
 
     var _hashSet = hashSet;
 
-    var hashDelete$1 = ( _hashDelete$1 && _hashDelete ) || _hashDelete$1;
-
-    var hashGet$1 = ( _hashGet$1 && _hashGet ) || _hashGet$1;
-
     /**
      * Creates a hash object.
      *
@@ -1179,8 +1151,8 @@ var DataTable = (function (Sortable) {
 
     // Add methods to `Hash`.
     Hash.prototype.clear = _hashClear;
-    Hash.prototype['delete'] = hashDelete$1;
-    Hash.prototype.get = hashGet$1;
+    Hash.prototype['delete'] = _hashDelete;
+    Hash.prototype.get = _hashGet;
     Hash.prototype.has = _hashHas;
     Hash.prototype.set = _hashSet;
 
@@ -1199,6 +1171,11 @@ var DataTable = (function (Sortable) {
     }
 
     var _listCacheClear = listCacheClear;
+
+    var _listCacheClear$1 = /*#__PURE__*/Object.freeze({
+        default: _listCacheClear,
+        __moduleExports: _listCacheClear
+    });
 
     /**
      * Performs a
@@ -1238,13 +1215,6 @@ var DataTable = (function (Sortable) {
 
     var eq_1 = eq;
 
-    var eq$1 = /*#__PURE__*/Object.freeze({
-        default: eq_1,
-        __moduleExports: eq_1
-    });
-
-    var eq$2 = ( eq$1 && eq_1 ) || eq$1;
-
     /**
      * Gets the index at which the `key` is found in `array` of key-value pairs.
      *
@@ -1256,7 +1226,7 @@ var DataTable = (function (Sortable) {
     function assocIndexOf(array, key) {
       var length = array.length;
       while (length--) {
-        if (eq$2(array[length][0], key)) {
+        if (eq_1(array[length][0], key)) {
           return length;
         }
       }
@@ -1264,6 +1234,13 @@ var DataTable = (function (Sortable) {
     }
 
     var _assocIndexOf = assocIndexOf;
+
+    var _assocIndexOf$1 = /*#__PURE__*/Object.freeze({
+        default: _assocIndexOf,
+        __moduleExports: _assocIndexOf
+    });
+
+    var assocIndexOf$1 = ( _assocIndexOf$1 && _assocIndexOf ) || _assocIndexOf$1;
 
     /** Used for built-in method references. */
     var arrayProto = Array.prototype;
@@ -1282,7 +1259,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheDelete(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         return false;
@@ -1310,17 +1287,12 @@ var DataTable = (function (Sortable) {
      */
     function listCacheGet(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       return index < 0 ? undefined : data[index][1];
     }
 
     var _listCacheGet = listCacheGet;
-
-    var _listCacheGet$1 = /*#__PURE__*/Object.freeze({
-        default: _listCacheGet,
-        __moduleExports: _listCacheGet
-    });
 
     /**
      * Checks if a list cache value for `key` exists.
@@ -1332,15 +1304,10 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
      */
     function listCacheHas(key) {
-      return _assocIndexOf(this.__data__, key) > -1;
+      return assocIndexOf$1(this.__data__, key) > -1;
     }
 
     var _listCacheHas = listCacheHas;
-
-    var _listCacheHas$1 = /*#__PURE__*/Object.freeze({
-        default: _listCacheHas,
-        __moduleExports: _listCacheHas
-    });
 
     /**
      * Sets the list cache `key` to `value`.
@@ -1354,7 +1321,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheSet(key, value) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         ++this.size;
@@ -1367,9 +1334,7 @@ var DataTable = (function (Sortable) {
 
     var _listCacheSet = listCacheSet;
 
-    var listCacheGet$1 = ( _listCacheGet$1 && _listCacheGet ) || _listCacheGet$1;
-
-    var listCacheHas$1 = ( _listCacheHas$1 && _listCacheHas ) || _listCacheHas$1;
+    var listCacheClear$1 = ( _listCacheClear$1 && _listCacheClear ) || _listCacheClear$1;
 
     /**
      * Creates an list cache object.
@@ -1390,18 +1355,25 @@ var DataTable = (function (Sortable) {
     }
 
     // Add methods to `ListCache`.
-    ListCache.prototype.clear = _listCacheClear;
+    ListCache.prototype.clear = listCacheClear$1;
     ListCache.prototype['delete'] = _listCacheDelete;
-    ListCache.prototype.get = listCacheGet$1;
-    ListCache.prototype.has = listCacheHas$1;
+    ListCache.prototype.get = _listCacheGet;
+    ListCache.prototype.has = _listCacheHas;
     ListCache.prototype.set = _listCacheSet;
 
     var _ListCache = ListCache;
+
+    var _ListCache$1 = /*#__PURE__*/Object.freeze({
+        default: _ListCache,
+        __moduleExports: _ListCache
+    });
 
     /* Built-in method references that are verified to be native. */
     var Map = _getNative(root$1, 'Map');
 
     var _Map = Map;
+
+    var ListCache$1 = ( _ListCache$1 && _ListCache ) || _ListCache$1;
 
     /**
      * Removes all key-value entries from the map.
@@ -1414,7 +1386,7 @@ var DataTable = (function (Sortable) {
       this.size = 0;
       this.__data__ = {
         'hash': new _Hash,
-        'map': new (_Map || _ListCache),
+        'map': new (_Map || ListCache$1),
         'string': new _Hash
       };
     }
@@ -1437,6 +1409,13 @@ var DataTable = (function (Sortable) {
 
     var _isKeyable = isKeyable;
 
+    var _isKeyable$1 = /*#__PURE__*/Object.freeze({
+        default: _isKeyable,
+        __moduleExports: _isKeyable
+    });
+
+    var isKeyable$1 = ( _isKeyable$1 && _isKeyable ) || _isKeyable$1;
+
     /**
      * Gets the data for `map`.
      *
@@ -1447,7 +1426,7 @@ var DataTable = (function (Sortable) {
      */
     function getMapData(map, key) {
       var data = map.__data__;
-      return _isKeyable(key)
+      return isKeyable$1(key)
         ? data[typeof key == 'string' ? 'string' : 'hash']
         : data.map;
     }
@@ -1486,11 +1465,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheGet = mapCacheGet;
 
-    var _mapCacheGet$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheGet,
-        __moduleExports: _mapCacheGet
-    });
-
     /**
      * Checks if a map value for `key` exists.
      *
@@ -1527,15 +1501,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheSet = mapCacheSet;
 
-    var _mapCacheSet$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheSet,
-        __moduleExports: _mapCacheSet
-    });
-
-    var mapCacheGet$1 = ( _mapCacheGet$1 && _mapCacheGet ) || _mapCacheGet$1;
-
-    var mapCacheSet$1 = ( _mapCacheSet$1 && _mapCacheSet ) || _mapCacheSet$1;
-
     /**
      * Creates a map cache object to store key-value pairs.
      *
@@ -1557,9 +1522,9 @@ var DataTable = (function (Sortable) {
     // Add methods to `MapCache`.
     MapCache.prototype.clear = _mapCacheClear;
     MapCache.prototype['delete'] = _mapCacheDelete;
-    MapCache.prototype.get = mapCacheGet$1;
+    MapCache.prototype.get = _mapCacheGet;
     MapCache.prototype.has = _mapCacheHas;
-    MapCache.prototype.set = mapCacheSet$1;
+    MapCache.prototype.set = _mapCacheSet;
 
     var _MapCache = MapCache;
 
@@ -1647,6 +1612,11 @@ var DataTable = (function (Sortable) {
 
     var _baseFindIndex = baseFindIndex;
 
+    var _baseFindIndex$1 = /*#__PURE__*/Object.freeze({
+        default: _baseFindIndex,
+        __moduleExports: _baseFindIndex
+    });
+
     /**
      * The base implementation of `_.isNaN` without support for number objects.
      *
@@ -1684,6 +1654,8 @@ var DataTable = (function (Sortable) {
 
     var _strictIndexOf = strictIndexOf;
 
+    var baseFindIndex$1 = ( _baseFindIndex$1 && _baseFindIndex ) || _baseFindIndex$1;
+
     /**
      * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
      *
@@ -1696,7 +1668,7 @@ var DataTable = (function (Sortable) {
     function baseIndexOf(array, value, fromIndex) {
       return value === value
         ? _strictIndexOf(array, value, fromIndex)
-        : _baseFindIndex(array, _baseIsNaN, fromIndex);
+        : baseFindIndex$1(array, _baseIsNaN, fromIndex);
     }
 
     var _baseIndexOf = baseIndexOf;
@@ -1878,6 +1850,13 @@ var DataTable = (function (Sortable) {
 
     var _baseUniq = baseUniq;
 
+    var _baseUniq$1 = /*#__PURE__*/Object.freeze({
+        default: _baseUniq,
+        __moduleExports: _baseUniq
+    });
+
+    var baseUniq$1 = ( _baseUniq$1 && _baseUniq ) || _baseUniq$1;
+
     /**
      * Creates a duplicate-free version of an array, using
      * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
@@ -1897,7 +1876,7 @@ var DataTable = (function (Sortable) {
      * // => [2, 1]
      */
     function uniq(array) {
-      return (array && array.length) ? _baseUniq(array) : [];
+      return (array && array.length) ? baseUniq$1(array) : [];
     }
 
     var uniq_1 = uniq;
@@ -2095,6 +2074,7 @@ var DataTable = (function (Sortable) {
             this.bindKeyboardSelection();
             this.bindCopyCellContents();
             this.bindMouseEvents();
+            this.bindWheelEvents();
             this.bindTreeEvents();
         }
 
@@ -2143,6 +2123,7 @@ var DataTable = (function (Sortable) {
                 }
 
                 this.focusCell($cell);
+                sessionStorage.setItem('dt-last-nav-method', 'key');
                 return true;
             };
 
@@ -2249,6 +2230,12 @@ var DataTable = (function (Sortable) {
             };
 
             $.on(this.bodyScrollable, 'mousemove', '.dt-cell', throttle$1(selectArea, 50));
+        }
+
+        bindWheelEvents() {
+            $.on(this.bodyScrollable, 'wheel', (e) => {
+                sessionStorage.setItem('dt-last-nav-method', 'scroll');
+            });
         }
 
         bindTreeEvents() {
@@ -2375,11 +2362,13 @@ var DataTable = (function (Sortable) {
             // this function is called after hyperlist renders the rows after scroll,
             // focusCell calls clearSelection which resets the area selection
             // so a flag to skip it
-            // we also skip DOM focus and scroll to cell
-            // because it fights with the user scroll
+            // we skip scroll to cell
+            // and also skip DOM focus (if user is scrolling) because it fights with the user scroll
+            const skipDOMFocus = sessionStorage.getItem('dt-last-nav-method') !== 'key';
+
             this.focusCell($cell, {
+                skipDOMFocus,
                 skipClearSelection: 1,
-                skipDOMFocus: 1,
                 skipScrollToCell: 1
             });
         }
@@ -2776,6 +2765,7 @@ var DataTable = (function (Sortable) {
             }
 
             this.focusCell($cell);
+            sessionStorage.setItem('dt-last-nav-method', 'key');
             return true;
         }
 
@@ -2874,8 +2864,15 @@ var DataTable = (function (Sortable) {
             });
 
             const row = this.datamanager.getRow(rowIndex);
+            const column = cell.column || this.datamanager.getColumn(colIndex) || {};
 
             const isBodyCell = !(isHeader || isFilter || isTotalRow);
+            const isSticky = Boolean(column.sticky);
+            const stickyColumns = this.datamanager.getColumns().filter(col => col.sticky);
+            const lastStickyColumn = stickyColumns[stickyColumns.length - 1];
+            const isLastStickyColumn = isSticky &&
+                lastStickyColumn &&
+                lastStickyColumn.colIndex === colIndex;
 
             const className = [
                 'dt-cell',
@@ -2885,7 +2882,10 @@ var DataTable = (function (Sortable) {
                 isHeader ? 'dt-cell--header' : '',
                 isHeader ? `dt-cell--header-${colIndex}` : '',
                 isFilter ? 'dt-cell--filter' : '',
-                isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : ''
+                isBodyCell && (row && row.meta.isTreeNodeClose) ? 'dt-cell--tree-close' : '',
+                isSticky ? 'dt-cell--sticky' : '',
+                isSticky && !isBodyCell ? 'dt-cell--sticky-top' : '',
+                isLastStickyColumn ? 'dt-cell--sticky-last' : ''
             ].join(' ');
 
             return `
@@ -3580,6 +3580,7 @@ var DataTable = (function (Sortable) {
                     sortable: false,
                     focusable: false,
                     dropdown: false,
+                    sticky: true,
                     width: 32
                 };
                 this.columns.push(cell);
@@ -3588,17 +3589,15 @@ var DataTable = (function (Sortable) {
             if (this.options.serialNoColumn && !this.hasColumnById('_rowIndex')) {
                 let cell = {
                     id: '_rowIndex',
-                    content: '',
+                    content: this.options.serialNoColumnLabel || '',
                     align: 'center',
                     editable: false,
-                    resizable: false,
+                    resizable: true,
                     focusable: false,
                     dropdown: false,
-                    width: 60
+                    width: 60,
+                    sticky: true
                 };
-                if (this.options.data.length > 1000) {
-                    cell.resizable = true;
-                }
                 this.columns.push(cell);
             }
         }
@@ -4253,7 +4252,7 @@ var DataTable = (function (Sortable) {
             });
 
             $.on(this.$dropdownList, 'click', '.dt-dropdown__list-item', (e, $item) => {
-                if (!this._dropdownActiveColIndex) return;
+                if (this._dropdownActiveColIndex == null) return;
                 const dropdownItems = this.options.headerDropdown;
                 const { index } = $.data($item);
                 const colIndex = this._dropdownActiveColIndex;
@@ -4267,6 +4266,11 @@ var DataTable = (function (Sortable) {
             function deactivateDropdown(e) {
                 _this.hideDropdown();
             }
+
+            this.stickDropdownIndex = this.options.headerDropdown
+                .findIndex(item => item.stickyAction === 'stick');
+            this.unstickDropdownIndex = this.options.headerDropdown
+                .findIndex(item => item.stickyAction === 'unstick');
 
             this.hideDropdown();
         }
@@ -4284,6 +4288,7 @@ var DataTable = (function (Sortable) {
             const $cell = $.closest('.dt-cell', e.target);
             const { colIndex } = $.data($cell);
             this._dropdownActiveColIndex = colIndex;
+            this.updateStickyDropdownItems(this.getColumn(colIndex));
         }
 
         hideDropdown() {
@@ -4472,6 +4477,20 @@ var DataTable = (function (Sortable) {
                 .then(() => {
                     this.fireEvent('onRemoveColumn', removedCol);
                 });
+        }
+
+        setColumnSticky(colIndex, sticky) {
+            const column = this.getColumn(colIndex);
+            if (!column || column.sticky === sticky) {
+                return;
+            }
+
+            this.instance.freeze();
+            this.datamanager.updateColumn(colIndex, { sticky });
+
+            this.refreshHeader();
+            this.rowmanager.refreshRows()
+                .then(() => this.instance.unfreeze());
         }
 
         switchColumn(oldIndex, newIndex) {
@@ -5134,6 +5153,23 @@ var DataTable = (function (Sortable) {
 
             // Appliquer les filtres
             this.applyFilter(filters);
+        }
+
+        updateStickyDropdownItems(column) {
+            if (!column) return;
+            if (this.stickDropdownIndex === -1 || this.unstickDropdownIndex === -1) return;
+
+            const stickItem = this.$dropdownList.children[this.stickDropdownIndex];
+            const unstickItem = this.$dropdownList.children[this.unstickDropdownIndex];
+            if (!(stickItem && unstickItem)) return;
+
+            if (column.sticky) {
+                stickItem.classList.add('dt-hidden');
+                unstickItem.classList.remove('dt-hidden');
+            } else {
+                stickItem.classList.remove('dt-hidden');
+                unstickItem.classList.add('dt-hidden');
+            }
         }
     }
 
@@ -6196,6 +6232,7 @@ var DataTable = (function (Sortable) {
 
         bindScrollHeader() {
             this._settingHeaderPosition = false;
+            this.updateStickyTopPositions(0);
 
             $.on(this.bodyScrollable, 'scroll', (e) => {
                 if (this._settingHeaderPosition) return;
@@ -6203,7 +6240,8 @@ var DataTable = (function (Sortable) {
                 this._settingHeaderPosition = true;
 
                 requestAnimationFrame(() => {
-                    const left = -e.target.scrollLeft;
+                    const scrollLeft = e.target.scrollLeft;
+                    const left = -scrollLeft;
 
                     $.style(this.header, {
                         transform: `translateX(${left}px)`
@@ -6211,6 +6249,7 @@ var DataTable = (function (Sortable) {
                     $.style(this.footer, {
                         transform: `translateX(${left}px)`
                     });
+                    this.updateStickyTopPositions(scrollLeft);
                     this._settingHeaderPosition = false;
                     if (this.instance.noData) {
                         $.style($('.no-data-message'), {
@@ -6308,6 +6347,8 @@ var DataTable = (function (Sortable) {
             this.setupColumnWidth();
             this.distributeRemainingWidth();
             this.setColumnStyle();
+            this.setStickyColumnStyle();
+            this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
             this.setBodyStyle();
         }
 
@@ -6465,6 +6506,8 @@ var DataTable = (function (Sortable) {
                     this.columnmanager.setColumnHeaderWidth(column.colIndex);
                     this.columnmanager.setColumnWidth(column.colIndex);
                 });
+            this.setStickyColumnStyle();
+            this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
         }
 
         setBodyStyle() {
@@ -6524,6 +6567,56 @@ var DataTable = (function (Sortable) {
             colIndex = +colIndex;
             if (colIndex < 0) return null;
             return $(`.dt-cell--col-${colIndex}`, this.header);
+        }
+
+        setStickyColumnStyle() {
+            if (!this.datamanager || !this.datamanager.getColumns) return;
+
+            const stickySelectors = [];
+            let stickyOffset = 0;
+            let normalOffset = 0;
+
+            this.datamanager.getColumns().forEach((column) => {
+                const $headerCell = this.getColumnHeaderElement(column.colIndex);
+                const renderedWidth = $headerCell ? $headerCell.offsetWidth : column.width;
+
+                if (column.sticky) {
+                    const selector = `.dt-cell--col-${column.colIndex}.dt-cell--sticky`;
+                    const style = {
+                        left: `${stickyOffset}px`
+                    };
+
+                    column.stickyLeft = stickyOffset;
+                    column.stickyScrollTrigger = normalOffset - stickyOffset;
+                    column.renderedWidth = renderedWidth;
+                    this.setStyle(selector, style);
+                    stickySelectors.push(selector);
+                    stickyOffset += renderedWidth;
+                }
+                normalOffset += renderedWidth;
+            });
+
+            const staleSelectors = (this._stickySelectors || [])
+                .filter(selector => !stickySelectors.includes(selector));
+
+            staleSelectors.forEach(selector => this.removeStyle(selector));
+            this._stickySelectors = stickySelectors;
+        }
+
+        updateStickyTopPositions(scrollLeft) {
+            if (!this.datamanager || !this.datamanager.getColumns) return;
+
+            const stickyColumns = this.datamanager.getColumns().filter(column => column.sticky);
+
+            stickyColumns.forEach((column) => {
+                const trigger = Math.max(0, column.stickyScrollTrigger || 0);
+                const compensation = Math.max(0, scrollLeft - trigger);
+                const cells = $.each(`.dt-cell--col-${column.colIndex}.dt-cell--sticky-top`, this.wrapper) || [];
+
+                $.style(cells, {
+                    transform: compensation ? `translateX(${compensation}px)` : ''
+                });
+            });
         }
 
         getRowIndexColumnWidth() {
@@ -6590,7 +6683,11 @@ var DataTable = (function (Sortable) {
         }
     }
 
+    var Freeze = "Freeze";
+    var Unfreeze = "Unfreeze";
     var en = {
+    	Freeze: Freeze,
+    	Unfreeze: Unfreeze,
     	"Sort Ascending": "Sort Ascending",
     	"Sort Descending": "Sort Descending",
     	"Reset sorting": "Reset sorting",
@@ -6600,6 +6697,8 @@ var DataTable = (function (Sortable) {
     	"{count} rows selected": {"1":"{count} row selected","default":"{count} rows selected"}
     };
 
+    var Freeze$1 = "Bevriezen";
+    var Unfreeze$1 = "Ontdooien";
     var Open = "Offen";
     var Closed = "Geschlossen";
     var Pending = "Ausstehend";
@@ -6617,6 +6716,8 @@ var DataTable = (function (Sortable) {
     var No = "Nein";
     var Showing = "Zeige";
     var de = {
+    	Freeze: Freeze$1,
+    	Unfreeze: Unfreeze$1,
     	Open: Open,
     	Closed: Closed,
     	Pending: Pending,
@@ -6646,6 +6747,8 @@ var DataTable = (function (Sortable) {
     	"Show more": "Mehr anzeigen"
     };
 
+    var Freeze$2 = "Geler";
+    var Unfreeze$2 = "Dégeler";
     var Open$1 = "Ouvert";
     var Closed$1 = "Fermé";
     var Pending$1 = "En attente";
@@ -6663,6 +6766,8 @@ var DataTable = (function (Sortable) {
     var No$1 = "Non";
     var Showing$1 = "Affichage";
     var fr = {
+    	Freeze: Freeze$2,
+    	Unfreeze: Unfreeze$2,
     	Open: Open$1,
     	Closed: Closed$1,
     	Pending: Pending$1,
@@ -6692,6 +6797,8 @@ var DataTable = (function (Sortable) {
     	"Show more": "Afficher plus"
     };
 
+    var Freeze$3 = "Congelare";
+    var Unfreeze$3 = "Dégeler";
     var Open$2 = "Aperto";
     var Closed$2 = "Chiuso";
     var Pending$2 = "In attesa";
@@ -6709,6 +6816,8 @@ var DataTable = (function (Sortable) {
     var No$2 = "No";
     var Showing$2 = "Visualizzazione";
     var it = {
+    	Freeze: Freeze$3,
+    	Unfreeze: Unfreeze$3,
     	Open: Open$2,
     	Closed: Closed$2,
     	Pending: Pending$2,
@@ -6804,6 +6913,22 @@ var DataTable = (function (Sortable) {
                     action: function (column) {
                         this.removeColumn(column.colIndex);
                     }
+                },
+                {
+                    label: instance.translate('Freeze'),
+                    stickyAction: 'stick',
+                    display: 'hidden',
+                    action: function (column) {
+                        this.setColumnSticky(column.colIndex, true);
+                    }
+                },
+                {
+                    label: instance.translate('Unfreeze'),
+                    stickyAction: 'unstick',
+                    display: 'hidden',
+                    action: function (column) {
+                        this.setColumnSticky(column.colIndex, false);
+                    }
                 }
             ],
             events: {
@@ -6828,6 +6953,7 @@ var DataTable = (function (Sortable) {
             freezeMessage: '',
             getEditor: null,
             serialNoColumn: true,
+            serialNoColumnLabel: '',
             checkboxColumn: false,
             clusterize: true,
             logs: false,
@@ -7059,6 +7185,10 @@ var DataTable = (function (Sortable) {
             this.columnmanager.removeColumn(colIndex);
         }
 
+        setColumnSticky(colIndex, sticky) {
+            this.columnmanager.setColumnSticky(colIndex, sticky);
+        }
+
         scrollToLastColumn() {
             this.datatableWrapper.scrollLeft = 9999;
         }
@@ -7138,7 +7268,7 @@ var DataTable = (function (Sortable) {
     var jsdelivr = "dist/frappe-datatable.min.js";
     var scripts = {"start":"yarn run dev","build":"rollup -c && NODE_ENV=production rollup -c","dev":"rollup -c -w","cy:server":"http-server -p 8989","cy:open":"cypress open","cy:run":"cypress run","test":"start-server-and-test cy:server http://localhost:8989 cy:run","test-local":"start-server-and-test cy:server http://localhost:8989 cy:open","travis-deploy-once":"travis-deploy-once","semantic-release":"semantic-release","lint":"eslint src","lint-and-build":"yarn lint && yarn build","commit":"npx git-cz"};
     var files = ["dist","src"];
-    var devDependencies = {"autoprefixer":"^9.0.0","chai":"3.5.0","cypress":"^9.2.0","cz-conventional-changelog":"^2.1.0","deepmerge":"^2.0.1","eslint":"^5.0.1","eslint-config-airbnb":"^16.1.0","eslint-config-airbnb-base":"^12.1.0","eslint-plugin-import":"^2.11.0","http-server":"^0.11.1","mocha":"3.3.0","postcss-custom-properties":"^7.0.0","postcss-nested":"^3.0.0","rollup":"^0.59.4","rollup-plugin-commonjs":"^8.3.0","rollup-plugin-eslint":"^4.0.0","rollup-plugin-json":"^2.3.0","rollup-plugin-node-resolve":"^3.0.3","rollup-plugin-postcss":"^1.2.8","rollup-plugin-uglify-es":"^0.0.1","semantic-release":"^17.1.1","start-server-and-test":"^1.4.1","travis-deploy-once":"^5.0.1"};
+    var devDependencies = {"autoprefixer":"^9.0.0","chai":"3.5.0","cypress":"^9.2.0","cz-conventional-changelog":"^2.1.0","deepmerge":"^2.0.1","eslint":"^5.0.1","eslint-config-airbnb":"^16.1.0","eslint-config-airbnb-base":"^12.1.0","eslint-plugin-import":"^2.11.0","http-server":"^0.11.1","mocha":"3.3.0","postcss-custom-properties":"^7.0.0","postcss-nested":"^3.0.0","rollup":"^0.59.4","rollup-plugin-commonjs":"^8.3.0","rollup-plugin-eslint":"^4.0.0","rollup-plugin-json":"^2.3.0","rollup-plugin-node-resolve":"^3.0.3","rollup-plugin-postcss":"^1.2.8","rollup-plugin-uglify-es":"^0.0.1","semantic-release":"^25.0.3","start-server-and-test":"^1.4.1","travis-deploy-once":"^5.0.1"};
     var repository = {"type":"git","url":"https://github.com/frappe/datatable.git"};
     var keywords = ["datatable","data","grid","table"];
     var author = "Faris Ansari";
