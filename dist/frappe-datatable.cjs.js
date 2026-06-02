@@ -1935,6 +1935,9 @@ function uniq$1(arr) {
 function numberSortAsc(a, b) {
     return a - b;
 }
+function stripHTML(html) {
+    return html.replace(/<[^>]*>/g, '');
+}
 function format(str, args) {
     if (!str) return str;
 
@@ -1960,623 +1963,6 @@ function escapeHTML(txt) {
 
     return String(txt).replace(/[&<>"'`=/]/g, (char) => escapeHtmlMapping[char] || char);
 }
-
-class DataManager {
-    constructor(options) {
-        this.options = options;
-        this.sortRows = nextTick(this.sortRows, this);
-        this.switchColumn = nextTick(this.switchColumn, this);
-        this.removeColumn = nextTick(this.removeColumn, this);
-        this.options.filterRows = nextTick(this.options.filterRows, this);
-    }
-
-    init(data, columns) {
-        if (!data) {
-            data = this.options.data;
-        }
-        if (columns) {
-            this.options.columns = columns;
-        }
-
-        this.data = data;
-
-        this.rowCount = 0;
-        this.columns = [];
-        this.rows = [];
-
-        this.prepareColumns();
-        this.validateData(this.data);
-        this.rows = this.prepareRows(this.data);
-        this.prepareTreeRows();
-        this.prepareRowView();
-        this.prepareNumericColumns();
-    }
-
-    // computed property
-    get currentSort() {
-        const col = this.columns.find(col => col.sortOrder !== 'none');
-        return col || {
-            colIndex: -1,
-            sortOrder: 'none'
-        };
-    }
-
-    prepareColumns() {
-        this.columns = [];
-        this.validateColumns();
-        this.prepareDefaultColumns();
-        this.prepareHeader();
-    }
-
-    prepareDefaultColumns() {
-        if (this.options.checkboxColumn && !this.hasColumnById('_checkbox')) {
-            const cell = {
-                id: '_checkbox',
-                content: this.getCheckboxHTML(),
-                editable: false,
-                resizable: false,
-                sortable: false,
-                focusable: false,
-                dropdown: false,
-                width: 32
-            };
-            this.columns.push(cell);
-        }
-
-        if (this.options.serialNoColumn && !this.hasColumnById('_rowIndex')) {
-            let cell = {
-                id: '_rowIndex',
-                content: '',
-                align: 'center',
-                editable: false,
-                resizable: false,
-                focusable: false,
-                dropdown: false,
-                width: 60
-            };
-            if (this.options.data.length > 1000) {
-                cell.resizable = true;
-            }
-            this.columns.push(cell);
-        }
-    }
-
-    prepareHeader() {
-        let columns = this.columns.concat(this.options.columns);
-        const baseCell = {
-            isHeader: 1,
-            editable: true,
-            sortable: true,
-            resizable: true,
-            focusable: true,
-            dropdown: true,
-            width: null,
-            format: (value) => {
-                if (value === null || value === undefined) {
-                    return '';
-                }
-                return value + '';
-            }
-        };
-
-        this.columns = columns
-            .map((cell, i) => this.prepareCell(cell, i))
-            .map(col => Object.assign({}, baseCell, col))
-            .map(col => {
-                col.content = col.content || col.name || '';
-                col.id = col.id || col.content;
-                return col;
-            });
-    }
-
-    prepareCell(content, i) {
-        const cell = {
-            content: '',
-            sortOrder: 'none',
-            colIndex: i,
-            column: this.columns[i]
-        };
-
-        if (content !== null && typeof content === 'object') {
-            // passed as column/header
-            Object.assign(cell, content);
-        } else {
-            cell.content = content;
-        }
-
-        return cell;
-    }
-
-    prepareNumericColumns() {
-        const row0 = this.getRow(0);
-        if (!row0) return;
-        this.columns = this.columns.map((column, i) => {
-
-            const cellValue = row0[i].content;
-            if (!column.align && isNumeric(cellValue)) {
-                column.align = 'right';
-            }
-
-            return column;
-        });
-    }
-
-    prepareRows(data) {
-        return data.map((d, i) => {
-            const index = this._getNextRowCount();
-
-            let row = [];
-            let meta = {
-                rowIndex: index
-            };
-
-            if (Array.isArray(d)) {
-                // row is an array
-                if (this.options.checkboxColumn) {
-                    row.push(this.getCheckboxHTML());
-                }
-                if (this.options.serialNoColumn) {
-                    row.push((index + 1) + '');
-                }
-                row = row.concat(d);
-
-                while (row.length < this.columns.length) {
-                    row.push('');
-                }
-
-            } else {
-                // row is an object
-                for (let col of this.columns) {
-                    if (col.id === '_checkbox') {
-                        row.push(this.getCheckboxHTML());
-                    } else if (col.id === '_rowIndex') {
-                        row.push((index + 1) + '');
-                    } else {
-                        row.push(d[col.id]);
-                    }
-                }
-
-                meta.indent = d.indent || 0;
-            }
-
-            return this.prepareRow(row, meta);
-        });
-    }
-
-    prepareTreeRows() {
-        this.rows.forEach((row, i) => {
-            if (isNumber(row.meta.indent)) {
-                // if (i === 36) debugger;
-                const nextRow = this.getRow(i + 1);
-                row.meta.isLeaf = !nextRow ||
-                    notSet(nextRow.meta.indent) ||
-                    nextRow.meta.indent <= row.meta.indent;
-                row.meta.isTreeNodeClose = false;
-            }
-        });
-    }
-
-    prepareRowView() {
-        // This is order in which rows will be rendered in the table.
-        // When sorting happens, only this.rowViewOrder will change
-        // and not the original this.rows
-        this.rowViewOrder = this.rows.map(row => row.meta.rowIndex);
-    }
-
-    prepareRow(row, meta) {
-        row = row
-            .map((cell, i) => this.prepareCell(cell, i))
-            .map(cell => {
-                // Following code is equivalent but avoids memory allocation and copying.
-                // return Object.assign({rowIndex: meta.rowIndex, indent: meta.indent}, cell)
-                if (cell.rowIndex == null) {
-                    cell.rowIndex = meta.rowIndex;
-                }
-                if (cell.indent == null) {
-                    cell.indent = meta.indent;
-                }
-                return cell;
-            });
-
-        // monkey patched in array object
-        row.meta = meta;
-        return row;
-    }
-
-    validateColumns() {
-        const columns = this.options.columns;
-        if (!Array.isArray(columns)) {
-            throw new DataError('`columns` must be an array');
-        }
-
-        columns.forEach((column, i) => {
-            if (typeof column !== 'string' && typeof column !== 'object') {
-                throw new DataError(`column "${i}" must be a string or an object`);
-            }
-        });
-    }
-
-    validateData(data) {
-        if (Array.isArray(data) &&
-            (data.length === 0 || Array.isArray(data[0]) || typeof data[0] === 'object')) {
-            return true;
-        }
-        throw new DataError('`data` must be an array of arrays or objects');
-    }
-
-    appendRows(rows) {
-        this.validateData(rows);
-        this.rows = this.rows.concat(this.prepareRows(rows));
-        this.prepareTreeRows();
-        this.prepareRowView();
-    }
-
-    sortRows(colIndex, sortOrder = 'none') {
-        colIndex = +colIndex;
-
-        // reset sortOrder and update for colIndex
-        this.getColumns()
-            .map(col => {
-                if (col.colIndex === colIndex) {
-                    col.sortOrder = sortOrder;
-                } else {
-                    col.sortOrder = 'none';
-                }
-            });
-
-        this._sortRows(colIndex, sortOrder);
-    }
-
-    _sortRows(colIndex, sortOrder) {
-
-        if (this.currentSort.colIndex === colIndex) {
-            // reverse the array if only sortOrder changed
-            if (
-                (this.currentSort.sortOrder === 'asc' && sortOrder === 'desc') ||
-                (this.currentSort.sortOrder === 'desc' && sortOrder === 'asc')
-            ) {
-                this.reverseArray(this.rowViewOrder);
-                this.currentSort.sortOrder = sortOrder;
-                return;
-            }
-        }
-
-        this.rowViewOrder.sort((a, b) => {
-            const aIndex = a;
-            const bIndex = b;
-
-            let aContent = this.getCell(colIndex, a).content;
-            let bContent = this.getCell(colIndex, b).content;
-            aContent = aContent == null ? '' : aContent;
-            bContent = bContent == null ? '' : bContent;
-
-            if (sortOrder === 'none') {
-                return aIndex - bIndex;
-            } else if (sortOrder === 'asc') {
-                if (aContent < bContent) return -1;
-                if (aContent > bContent) return 1;
-                if (aContent === bContent) return 0;
-            } else if (sortOrder === 'desc') {
-                if (aContent < bContent) return 1;
-                if (aContent > bContent) return -1;
-                if (aContent === bContent) return 0;
-            }
-            return 0;
-        });
-
-        if (this.hasColumnById('_rowIndex')) {
-            // update row index
-            const srNoColIndex = this.getColumnIndexById('_rowIndex');
-            this.rows.forEach((row, index) => {
-                const viewIndex = this.rowViewOrder.indexOf(index);
-                const cell = row[srNoColIndex];
-                cell.content = (viewIndex + 1) + '';
-            });
-        }
-    }
-
-    reverseArray(array) {
-        let left = null;
-        let right = null;
-        let length = array.length;
-
-        for (left = 0, right = length - 1; left < right; left += 1, right -= 1) {
-            const temporary = array[left];
-
-            array[left] = array[right];
-            array[right] = temporary;
-        }
-    }
-
-    switchColumn(index1, index2) {
-        // update columns
-        const temp = this.columns[index1];
-        this.columns[index1] = this.columns[index2];
-        this.columns[index2] = temp;
-
-        this.columns[index1].colIndex = index1;
-        this.columns[index2].colIndex = index2;
-
-        // update rows
-        this.rows.forEach(row => {
-            const newCell1 = Object.assign({}, row[index1], {
-                colIndex: index2
-            });
-            const newCell2 = Object.assign({}, row[index2], {
-                colIndex: index1
-            });
-
-            row[index2] = newCell1;
-            row[index1] = newCell2;
-        });
-    }
-
-    removeColumn(index) {
-        index = +index;
-        const filter = cell => cell.colIndex !== index;
-        const map = (cell, i) => Object.assign({}, cell, {
-            colIndex: i
-        });
-        // update columns
-        this.columns = this.columns
-            .filter(filter)
-            .map(map);
-
-        // update rows
-        this.rows.forEach(row => {
-            // remove cell
-            row.splice(index, 1);
-            // update colIndex
-            row.forEach((cell, i) => {
-                cell.colIndex = i;
-            });
-        });
-    }
-
-    updateRow(row, rowIndex) {
-        if (row.length < this.columns.length) {
-            if (this.hasColumnById('_rowIndex')) {
-                const val = (rowIndex + 1) + '';
-
-                row = [val].concat(row);
-            }
-
-            if (this.hasColumnById('_checkbox')) {
-                const val = '<input type="checkbox" />';
-
-                row = [val].concat(row);
-            }
-        }
-
-        const _row = this.prepareRow(row, {rowIndex});
-        const index = this.rows.findIndex(row => row[0].rowIndex === rowIndex);
-        this.rows[index] = _row;
-
-        return _row;
-    }
-
-    updateCell(colIndex, rowIndex, options) {
-        let cell;
-        if (typeof colIndex === 'object') {
-            // cell object was passed,
-            // must have colIndex, rowIndex
-            cell = colIndex;
-            colIndex = cell.colIndex;
-            rowIndex = cell.rowIndex;
-            // the object passed must be merged with original cell
-            options = cell;
-        }
-        cell = this.getCell(colIndex, rowIndex);
-
-        // mutate object directly
-        for (let key in options) {
-            const newVal = options[key];
-            if (newVal !== undefined) {
-                cell[key] = newVal;
-            }
-        }
-
-        return cell;
-    }
-
-    updateColumn(colIndex, keyValPairs) {
-        const column = this.getColumn(colIndex);
-        for (let key in keyValPairs) {
-            const newVal = keyValPairs[key];
-            if (newVal !== undefined) {
-                column[key] = newVal;
-            }
-        }
-        return column;
-    }
-
-    filterRows(filters) {
-        return this.options.filterRows(this.rows, filters, {
-            doctype: this.options.doctype,
-            columns: this.columns,
-            data: this
-        })
-            .then(filteredRows => {
-                this.rows = filteredRows;
-                this._filteredRows = filteredRows.map((row, index) => index);
-                this.rowViewOrder = this._filteredRows;
-                return {
-                    rowsToShow: this._filteredRows,
-                    rowsToHide: []
-                };
-            });
-    }
-
-    getFilteredRowIndices() {
-        return this._filteredRows || this.getAllRowIndices();
-    }
-
-    getAllRowIndices() {
-        return this.rows.map(row => row.meta.rowIndex);
-    }
-
-    getRowCount() {
-        return this.rows.length;
-    }
-
-    _getNextRowCount() {
-        const val = this.rowCount;
-
-        this.rowCount++;
-        return val;
-    }
-
-    getRows(start, end) {
-        return this.rows.slice(start, end);
-    }
-
-    getRowsForView(start, end) {
-        const rows = this.rowViewOrder.map(i => this.rows[i]);
-        return rows.slice(start, end);
-    }
-
-    getColumns(skipStandardColumns) {
-        let columns = this.columns;
-
-        if (skipStandardColumns) {
-            columns = columns.slice(this.getStandardColumnCount());
-        }
-
-        return columns;
-    }
-
-    getStandardColumnCount() {
-        if (this.options.checkboxColumn && this.options.serialNoColumn) {
-            return 2;
-        }
-
-        if (this.options.checkboxColumn || this.options.serialNoColumn) {
-            return 1;
-        }
-
-        return 0;
-    }
-
-    getColumnCount(skipStandardColumns) {
-        let val = this.columns.length;
-
-        if (skipStandardColumns) {
-            val = val - this.getStandardColumnCount();
-        }
-
-        return val;
-    }
-
-    getColumn(colIndex) {
-        colIndex = +colIndex;
-
-        if (colIndex < 0) {
-            // negative indexes
-            colIndex = this.columns.length + colIndex;
-        }
-
-        return this.columns.find(col => col.colIndex === colIndex);
-    }
-
-    getColumnById(id) {
-        return this.columns.find(col => col.id === id);
-    }
-
-    getRow(rowIndex) {
-        rowIndex = +rowIndex;
-        return this.rows[rowIndex];
-    }
-
-    getCell(colIndex, rowIndex) {
-        rowIndex = +rowIndex;
-        colIndex = +colIndex;
-        return this.getRow(rowIndex)[colIndex];
-    }
-
-    getChildren(parentRowIndex) {
-        parentRowIndex = +parentRowIndex;
-        const parentIndent = this.getRow(parentRowIndex).meta.indent;
-        const out = [];
-
-        for (let i = parentRowIndex + 1; i < this.rowCount; i++) {
-            const row = this.getRow(i);
-            if (isNaN(row.meta.indent)) continue;
-
-            if (row.meta.indent > parentIndent) {
-                out.push(i);
-            }
-
-            if (row.meta.indent === parentIndent) {
-                break;
-            }
-        }
-
-        return out;
-    }
-
-    getImmediateChildren(parentRowIndex) {
-        parentRowIndex = +parentRowIndex;
-        const parentIndent = this.getRow(parentRowIndex).meta.indent;
-        const out = [];
-        const childIndent = parentIndent + 1;
-
-        for (let i = parentRowIndex + 1; i < this.rowCount; i++) {
-            const row = this.getRow(i);
-            if (isNaN(row.meta.indent) || row.meta.indent > childIndent) continue;
-
-            if (row.meta.indent === childIndent) {
-                out.push(i);
-            }
-
-            if (row.meta.indent === parentIndent) {
-                break;
-            }
-        }
-
-        return out;
-    }
-
-    get() {
-        return {
-            columns: this.columns,
-            rows: this.rows
-        };
-    }
-
-    /**
-     * Returns the original data which was passed
-     * based on rowIndex
-     * @param {Number} rowIndex
-     * @returns Array|Object
-     * @memberof DataManager
-     */
-    getData(rowIndex) {
-        return this.data[rowIndex];
-    }
-
-    hasColumn(name) {
-        return Boolean(this.columns.find(col => col.content === name));
-    }
-
-    hasColumnById(id) {
-        return Boolean(this.columns.find(col => col.id === id));
-    }
-
-    getColumnIndex(name) {
-        return this.columns.findIndex(col => col.content === name);
-    }
-
-    getColumnIndexById(id) {
-        return this.columns.findIndex(col => col.id === id);
-    }
-
-    getCheckboxHTML() {
-        return '<input type="checkbox" />';
-    }
-}
-
-// Custom Errors
-class DataError extends TypeError {}
 
 /* eslint-disable max-len */
 
@@ -3572,6 +2958,1108 @@ class CellManager {
     }
 }
 
+function cleanDateString(dateString) {
+    const dateFormats = [
+        { regex: /^\d{2}-\d{2}-\d{4}$/, format: 'DD-MM-YYYY' },
+        { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'YYYY-MM-DD' }
+    ];
+
+    for (let { regex, format: format$$1 } of dateFormats) {
+        if (regex.test(dateString)) {
+            const dateParts = dateString.split('-');
+            let day, month, year;
+            if (format$$1 === 'DD-MM-YYYY') {
+                day = dateParts[0].padStart(2, '0');
+                month = dateParts[1].padStart(2, '0');
+                year = dateParts[2];
+            } else if (format$$1 === 'YYYY-MM-DD') {
+                year = dateParts[0];
+                month = dateParts[1].padStart(2, '0');
+                day = dateParts[2].padStart(2, '0');
+            }
+            if (isValidDate(day, month, year)) {
+                return `${year}-${month}-${day}`;
+            }
+        }
+    }
+
+    console.error('Invalid date string:', dateString);
+    return null;
+}
+
+function isValidDate(day, month, year) {
+    const date = new Date(`${year}-${month}-${day}`);
+    return date.getFullYear() == year && (date.getMonth() + 1) == month && date.getDate() == day;
+}
+
+function processFilter(column, keyword, doctype) {
+    if (column && column.docfield && column.docfield.fieldtype === 'Currency') {
+        return [doctype, column.id, 'like', `${keyword}%`];
+    } else if (column && column.docfield && column.docfield.fieldtype === 'Percent') {
+        // Vérifier si le champ est de type Percent
+        const parsedKeyword = parseFloat(keyword);
+        if (!isNaN(parsedKeyword)) {
+            // Retourner un filtre exact si le mot-clé est un nombre (comme 0)
+            return [doctype, column.id, '=', parsedKeyword];
+        }
+        console.error('Invalid percent format:', keyword);
+        return null;
+
+    } else if (column && column.id.includes(':')) {
+        const [childDoctype, childField] = column.id.split(':');
+        return [childDoctype, childField, 'like', `%${keyword}%`];
+    } else if (column) {
+        if (keyword.includes(';')) {
+            const keywordsArray = keyword.split(';').map(k => k.trim());
+            return [doctype, column.id, 'in', keywordsArray];
+        }
+        if (column.docfield.fieldtype === 'Date') {
+            const cleanedDate = cleanDateString(keyword);
+            if (cleanedDate) {
+                return [doctype, column.id, '=', cleanedDate];
+            }
+            console.error('Invalid date format:', keyword);
+            return null;
+
+        } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
+            if (keyword.includes(';')) {
+                const keywordsArray = keyword.split(';').map(k => k.trim());
+                return [doctype, column.id, 'in', keywordsArray];
+            }
+            // Détecter si c'est un champ de statut
+            const columnName = (column.name || column.id || '').toLowerCase();
+            let isStatusField = columnName.includes('status') || columnName.includes('state') ||
+                                columnName === 'docstatus' || columnName.includes('workflow_state');
+
+            // Vérifier aussi les options pour détecter un champ de statut
+            if (!isStatusField && column.docfield.fieldtype === 'Select' && column.docfield.options) {
+                const options = column.docfield.options.toLowerCase();
+                const statusPatterns = ['paid', 'unpaid', 'open', 'closed', 'pending', 'draft',
+                    'submitted', 'cancelled', 'completed', 'active', 'inactive'];
+                isStatusField = statusPatterns.some(pattern => options.includes(pattern));
+            }
+
+            if (isStatusField) {
+                // Pour les champs de statut, utiliser une égalité exacte
+                return [doctype, column.id, '=', keyword];
+            }
+
+            return [doctype, column.id, 'like', `%${keyword}%`];
+
+        }
+        return [doctype, column.id, 'like', `%${keyword}%`];
+    }
+    console.warn(`Colonne invalide à l'index ${colIndex}`);
+    return null;
+
+}
+
+function filterRows(rows, filters, data, start = 0, page_length = 10000) {
+    return new Promise((resolve, reject) => {
+        const doctype = cur_list.doctype;
+        let frappeFilters = [];
+
+        const existingFilters = cur_list.get_filters_for_args();
+        frappeFilters = frappeFilters.concat(existingFilters);
+
+        Object.keys(filters).forEach(colIndex => {
+            const keyword = filters[colIndex];
+            const column = data.columns.find(col => col.colIndex == colIndex);
+            const filter = processFilter(column, keyword, doctype);
+            if (filter) {
+                frappeFilters.push(filter);
+            }
+        });
+
+        const args = cur_list.get_call_args();
+        args.args.filters = frappeFilters;
+        args.args.start = start;
+        args.args.page_length = page_length;
+
+        frappe.call(args).then(r => {
+            cur_list.prepare_data(r);
+            let page_length = r.message.values.length;
+            const pagingArea = cur_list.$paging_area[0];
+
+            const listCountElement = pagingArea.querySelector('.list-count');
+            if (listCountElement) {
+                listCountElement.textContent = page_length;
+            }
+            const btnMore = pagingArea.querySelector('.btn-more');
+            if (btnMore) {
+                btnMore.style.display = 'none';
+            }
+
+            if (page_length < 100) {
+                page_length = 100;
+            }
+            cur_list.page_length = page_length;
+            cur_list.total_count = page_length;
+
+            const formattedRows = cur_list.data.map((rowData, rowIndex) => {
+                return data.columns
+                    .filter(column => column.visible !== false)
+                    .map((column, colIndex) => {
+                        const cellClass = `dt-cell dt-cell--col-${colIndex} dt-cell--${colIndex}-${rowIndex} dt-cell--row-${rowIndex}`;
+                        const contentClass = `dt-cell__content dt-cell__content--col-${colIndex}`;
+                        let cellData = null;
+
+                        if (column.id.includes(':')) {
+                            const [childDoctype, childField] = column.id.split(':');
+                            const childData = rowData[`${childDoctype}:${childField}`];
+                            cellData = childData || rowData[childField] || null;
+                        } else {
+                            cellData = rowData[column.field] || null;
+                        }
+
+                        if (column.field === 'meta') {
+                            return {
+                                content: cur_list.get_meta_html(rowData),
+                                rowIndex: rowIndex,
+                                colIndex: colIndex,
+                                column: column,
+                                sortOrder: column.sortOrder,
+                                editable: column.editable,
+                                focusable: column.focusable,
+                                dropdown: column.dropdown,
+                                width: column.width,
+                                name: column.name,
+                                docfield: column.docfield || {},
+                                attributes: {
+                                    class: cellClass,
+                                    'data-row-index': rowIndex,
+                                    'data-col-index': colIndex,
+                                    'tabindex': 0
+                                },
+                                contentAttributes: {
+                                    class: contentClass,
+                                    title: cellData ? cellData.toString() : ''
+                                }
+                            };
+                        }
+
+                        if (column.id === '_checkbox') {
+                            cellData = '<input type="checkbox">';
+                        } else if (column.id === '_rowIndex') {
+                            cellData = rowIndex + 1;
+                        }
+
+                        return {
+                            content: cellData,
+                            rowIndex: rowIndex,
+                            colIndex: colIndex,
+                            column: column,
+                            sortOrder: column.sortOrder,
+                            editable: column.editable,
+                            focusable: column.focusable,
+                            dropdown: column.dropdown,
+                            width: column.width,
+                            name: column.name,
+                            docfield: column.docfield || {},
+                            attributes: {
+                                class: cellClass,
+                                'data-row-index': rowIndex,
+                                'data-col-index': colIndex,
+                                'tabindex': 0
+                            },
+                            contentAttributes: {
+                                class: contentClass,
+                                title: cellData ? cellData.toString() : ''
+                            }
+                        };
+                    });
+            });
+
+            // Appliquer le tri si une colonne est triée
+            const sortedColumn = data.columns.find(col => col.sortOrder && col.sortOrder !== 'none');
+            if (sortedColumn) {
+                formattedRows.sort((a, b) => {
+                    const aValue = a.find(cell => cell.colIndex === sortedColumn.colIndex).content;
+                    const bValue = b.find(cell => cell.colIndex === sortedColumn.colIndex).content;
+                    if (sortedColumn.sortOrder === 'asc') {
+                        return aValue > bValue ? 1 : -1;
+                    }
+                    return aValue < bValue ? 1 : -1;
+
+                });
+            }
+
+            formattedRows.forEach((row, rowIndex) => {
+                row.meta = row.meta || {};
+                row.meta.rowIndex = rowIndex;
+                row.meta.indent = row.meta.indent || 0;
+                row.meta.isLeaf = row.meta.isLeaf !== undefined ? row.meta.isLeaf : true;
+                row.meta.isTreeNodeClose = row.meta.isTreeNodeClose !== undefined ? row.meta.isTreeNodeClose : false;
+            });
+
+            data.rows = formattedRows;
+
+            // Hook: Allow cur_list to add additional rows (like totals row)
+            if (cur_list && typeof cur_list.add_totals_to_filtered_rows === 'function') {
+                const totalsRow = cur_list.add_totals_to_filtered_rows(formattedRows, data.columns);
+                if (totalsRow) {
+                    formattedRows.push(totalsRow);
+                    data.rows = formattedRows;
+                }
+            }
+
+            if (typeof data.refresh === 'function') {
+                data.refresh(formattedRows);
+            }
+
+            resolve(formattedRows);
+        }).catch(error => {
+            console.error('Erreur lors de l\'appel de Frappe:', error);
+            reject(error);
+        });
+    });
+}
+
+function getFilterMethod(rows, allData, filter) {
+    const getFormattedValue = cell => {
+        let formatter = CellManager.getCustomCellFormatter(cell);
+        let rowData = rows[cell.rowIndex];
+        if (allData && allData.data && allData.data.length) {
+            rowData = allData.data[cell.rowIndex];
+        }
+        if (formatter && cell.content) {
+            cell.html = formatter(cell.content, rows[cell.rowIndex], cell.column, rowData, filter);
+            return stripHTML(cell.html);
+        }
+        return cell.content || '';
+    };
+
+    const stringCompareValue = cell =>
+        String(stripHTML(cell.html || '') || getFormattedValue(cell)).toLowerCase();
+
+    const numberCompareValue = cell => parseFloat(cell.content);
+
+    const getCompareValues = (cell, keyword) => {
+        if (cell.column.compareValue) {
+            const compareValues = cell.column.compareValue(cell, keyword);
+            if (compareValues && Array.isArray(compareValues)) return compareValues;
+        }
+
+        // check if it can be converted to number
+        const float = numberCompareValue(cell);
+        if (!isNaN(float)) {
+            return [float, keyword];
+        }
+
+        return [stringCompareValue(cell), keyword];
+    };
+
+    let filterMethodMap = {
+        contains(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    const needle = (keyword || '').toLowerCase();
+                    return !needle ||
+                        (cell.content || '').toLowerCase().includes(needle) ||
+                        stringCompareValue(cell).includes(needle);
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        greaterThan(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    const [compareValue, keywordValue] = getCompareValues(cell, keyword);
+                    return compareValue > keywordValue;
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        lessThan(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    const [compareValue, keywordValue] = getCompareValues(cell, keyword);
+                    return compareValue < keywordValue;
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        equals(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    const value = parseFloat(cell.content);
+                    return value === keyword;
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        notEquals(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    const value = parseFloat(cell.content);
+                    return value !== keyword;
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        range(rangeValues, cells) {
+            return cells
+                .filter(cell => {
+                    const values1 = getCompareValues(cell, rangeValues[0]);
+                    const values2 = getCompareValues(cell, rangeValues[1]);
+                    const value = values1[0];
+                    return value >= values1[1] && value <= values2[1];
+                })
+                .map(cell => cell.rowIndex);
+        },
+
+        containsNumber(keyword, cells) {
+            return cells
+                .filter(cell => {
+                    let number = parseFloat(keyword, 10);
+                    let string = keyword;
+                    let hayNumber = numberCompareValue(cell);
+                    let hayString = stringCompareValue(cell);
+
+                    return number === hayNumber || hayString.includes(string);
+                })
+                .map(cell => cell.rowIndex);
+        }
+    };
+
+    return filterMethodMap[filter.type];
+}
+
+function guessFilter(keyword = '') {
+    if (keyword.length === 0) return {};
+
+    let compareString = keyword;
+
+    if (['>', '<', '='].includes(compareString[0])) {
+        compareString = keyword.slice(1);
+    } else if (compareString.startsWith('!=')) {
+        compareString = keyword.slice(2);
+    }
+
+    if (keyword.startsWith('>')) {
+        if (compareString) {
+            return {
+                type: 'greaterThan',
+                text: compareString.trim()
+            };
+        }
+    }
+
+    if (keyword.startsWith('<')) {
+        if (compareString) {
+            return {
+                type: 'lessThan',
+                text: compareString.trim()
+            };
+        }
+    }
+
+    if (keyword.startsWith('=')) {
+        if (isNumber(compareString)) {
+            return {
+                type: 'equals',
+                text: Number(keyword.slice(1).trim())
+            };
+        }
+    }
+
+    if (isNumber(compareString)) {
+        return {
+            type: 'containsNumber',
+            text: compareString
+        };
+    }
+
+    if (keyword.startsWith('!=')) {
+        if (isNumber(compareString)) {
+            return {
+                type: 'notEquals',
+                text: Number(keyword.slice(2).trim())
+            };
+        }
+    }
+
+    if (keyword.split(':').length === 2 && keyword.split(':').every(v => isNumber(v.trim()))) {
+        compareString = keyword.split(':');
+        return {
+            type: 'range',
+            text: compareString.map(v => v.trim())
+        };
+    }
+
+    return {
+        type: 'contains',
+        text: compareString.toLowerCase()
+    };
+}
+
+// Client-side filtering for contexts without a list view (e.g. Frappe
+// script/query reports such as the General Ledger). Mirrors the upstream
+// datatable behaviour: filter the already-loaded rows in the browser and
+// return the list of row indices to show. Does NOT touch the server.
+function clientFilterRows(rows, filters, data) {
+    let filteredRowIndices = [];
+
+    if (Object.keys(filters).length === 0) {
+        return rows.map(row => row.meta.rowIndex);
+    }
+
+    for (let colIndex in filters) {
+        const keyword = filters[colIndex];
+
+        const filteredRows = filteredRowIndices.length ?
+            filteredRowIndices.map(i => rows[i]) :
+            rows;
+
+        const cells = filteredRows.map(row => row[colIndex]);
+
+        let filter = guessFilter(keyword);
+        let filterMethod = getFilterMethod(rows, data, filter);
+
+        if (filterMethod) {
+            filteredRowIndices = filterMethod(filter.text, cells);
+        } else {
+            filteredRowIndices = cells.map(cell => cell.rowIndex);
+        }
+    }
+
+    return filteredRowIndices;
+}
+
+class DataManager {
+    constructor(options) {
+        this.options = options;
+        this.sortRows = nextTick(this.sortRows, this);
+        this.switchColumn = nextTick(this.switchColumn, this);
+        this.removeColumn = nextTick(this.removeColumn, this);
+        this.options.filterRows = nextTick(this.options.filterRows, this);
+    }
+
+    init(data, columns) {
+        if (!data) {
+            data = this.options.data;
+        }
+        if (columns) {
+            this.options.columns = columns;
+        }
+
+        this.data = data;
+
+        this.rowCount = 0;
+        this.columns = [];
+        this.rows = [];
+
+        this.prepareColumns();
+        this.validateData(this.data);
+        this.rows = this.prepareRows(this.data);
+        this.prepareTreeRows();
+        this.prepareRowView();
+        this.prepareNumericColumns();
+    }
+
+    // computed property
+    get currentSort() {
+        const col = this.columns.find(col => col.sortOrder !== 'none');
+        return col || {
+            colIndex: -1,
+            sortOrder: 'none'
+        };
+    }
+
+    prepareColumns() {
+        this.columns = [];
+        this.validateColumns();
+        this.prepareDefaultColumns();
+        this.prepareHeader();
+    }
+
+    prepareDefaultColumns() {
+        if (this.options.checkboxColumn && !this.hasColumnById('_checkbox')) {
+            const cell = {
+                id: '_checkbox',
+                content: this.getCheckboxHTML(),
+                editable: false,
+                resizable: false,
+                sortable: false,
+                focusable: false,
+                dropdown: false,
+                width: 32
+            };
+            this.columns.push(cell);
+        }
+
+        if (this.options.serialNoColumn && !this.hasColumnById('_rowIndex')) {
+            let cell = {
+                id: '_rowIndex',
+                content: '',
+                align: 'center',
+                editable: false,
+                resizable: false,
+                focusable: false,
+                dropdown: false,
+                width: 60
+            };
+            if (this.options.data.length > 1000) {
+                cell.resizable = true;
+            }
+            this.columns.push(cell);
+        }
+    }
+
+    prepareHeader() {
+        let columns = this.columns.concat(this.options.columns);
+        const baseCell = {
+            isHeader: 1,
+            editable: true,
+            sortable: true,
+            resizable: true,
+            focusable: true,
+            dropdown: true,
+            width: null,
+            format: (value) => {
+                if (value === null || value === undefined) {
+                    return '';
+                }
+                return value + '';
+            }
+        };
+
+        this.columns = columns
+            .map((cell, i) => this.prepareCell(cell, i))
+            .map(col => Object.assign({}, baseCell, col))
+            .map(col => {
+                col.content = col.content || col.name || '';
+                col.id = col.id || col.content;
+                return col;
+            });
+    }
+
+    prepareCell(content, i) {
+        const cell = {
+            content: '',
+            sortOrder: 'none',
+            colIndex: i,
+            column: this.columns[i]
+        };
+
+        if (content !== null && typeof content === 'object') {
+            // passed as column/header
+            Object.assign(cell, content);
+        } else {
+            cell.content = content;
+        }
+
+        return cell;
+    }
+
+    prepareNumericColumns() {
+        const row0 = this.getRow(0);
+        if (!row0) return;
+        this.columns = this.columns.map((column, i) => {
+
+            const cellValue = row0[i].content;
+            if (!column.align && isNumeric(cellValue)) {
+                column.align = 'right';
+            }
+
+            return column;
+        });
+    }
+
+    prepareRows(data) {
+        return data.map((d, i) => {
+            const index = this._getNextRowCount();
+
+            let row = [];
+            let meta = {
+                rowIndex: index
+            };
+
+            if (Array.isArray(d)) {
+                // row is an array
+                if (this.options.checkboxColumn) {
+                    row.push(this.getCheckboxHTML());
+                }
+                if (this.options.serialNoColumn) {
+                    row.push((index + 1) + '');
+                }
+                row = row.concat(d);
+
+                while (row.length < this.columns.length) {
+                    row.push('');
+                }
+
+            } else {
+                // row is an object
+                for (let col of this.columns) {
+                    if (col.id === '_checkbox') {
+                        row.push(this.getCheckboxHTML());
+                    } else if (col.id === '_rowIndex') {
+                        row.push((index + 1) + '');
+                    } else {
+                        row.push(d[col.id]);
+                    }
+                }
+
+                meta.indent = d.indent || 0;
+            }
+
+            return this.prepareRow(row, meta);
+        });
+    }
+
+    prepareTreeRows() {
+        this.rows.forEach((row, i) => {
+            if (isNumber(row.meta.indent)) {
+                // if (i === 36) debugger;
+                const nextRow = this.getRow(i + 1);
+                row.meta.isLeaf = !nextRow ||
+                    notSet(nextRow.meta.indent) ||
+                    nextRow.meta.indent <= row.meta.indent;
+                row.meta.isTreeNodeClose = false;
+            }
+        });
+    }
+
+    prepareRowView() {
+        // This is order in which rows will be rendered in the table.
+        // When sorting happens, only this.rowViewOrder will change
+        // and not the original this.rows
+        this.rowViewOrder = this.rows.map(row => row.meta.rowIndex);
+    }
+
+    prepareRow(row, meta) {
+        row = row
+            .map((cell, i) => this.prepareCell(cell, i))
+            .map(cell => {
+                // Following code is equivalent but avoids memory allocation and copying.
+                // return Object.assign({rowIndex: meta.rowIndex, indent: meta.indent}, cell)
+                if (cell.rowIndex == null) {
+                    cell.rowIndex = meta.rowIndex;
+                }
+                if (cell.indent == null) {
+                    cell.indent = meta.indent;
+                }
+                return cell;
+            });
+
+        // monkey patched in array object
+        row.meta = meta;
+        return row;
+    }
+
+    validateColumns() {
+        const columns = this.options.columns;
+        if (!Array.isArray(columns)) {
+            throw new DataError('`columns` must be an array');
+        }
+
+        columns.forEach((column, i) => {
+            if (typeof column !== 'string' && typeof column !== 'object') {
+                throw new DataError(`column "${i}" must be a string or an object`);
+            }
+        });
+    }
+
+    validateData(data) {
+        if (Array.isArray(data) &&
+            (data.length === 0 || Array.isArray(data[0]) || typeof data[0] === 'object')) {
+            return true;
+        }
+        throw new DataError('`data` must be an array of arrays or objects');
+    }
+
+    appendRows(rows) {
+        this.validateData(rows);
+        this.rows = this.rows.concat(this.prepareRows(rows));
+        this.prepareTreeRows();
+        this.prepareRowView();
+    }
+
+    sortRows(colIndex, sortOrder = 'none') {
+        colIndex = +colIndex;
+
+        // reset sortOrder and update for colIndex
+        this.getColumns()
+            .map(col => {
+                if (col.colIndex === colIndex) {
+                    col.sortOrder = sortOrder;
+                } else {
+                    col.sortOrder = 'none';
+                }
+            });
+
+        this._sortRows(colIndex, sortOrder);
+    }
+
+    _sortRows(colIndex, sortOrder) {
+
+        if (this.currentSort.colIndex === colIndex) {
+            // reverse the array if only sortOrder changed
+            if (
+                (this.currentSort.sortOrder === 'asc' && sortOrder === 'desc') ||
+                (this.currentSort.sortOrder === 'desc' && sortOrder === 'asc')
+            ) {
+                this.reverseArray(this.rowViewOrder);
+                this.currentSort.sortOrder = sortOrder;
+                return;
+            }
+        }
+
+        this.rowViewOrder.sort((a, b) => {
+            const aIndex = a;
+            const bIndex = b;
+
+            let aContent = this.getCell(colIndex, a).content;
+            let bContent = this.getCell(colIndex, b).content;
+            aContent = aContent == null ? '' : aContent;
+            bContent = bContent == null ? '' : bContent;
+
+            if (sortOrder === 'none') {
+                return aIndex - bIndex;
+            } else if (sortOrder === 'asc') {
+                if (aContent < bContent) return -1;
+                if (aContent > bContent) return 1;
+                if (aContent === bContent) return 0;
+            } else if (sortOrder === 'desc') {
+                if (aContent < bContent) return 1;
+                if (aContent > bContent) return -1;
+                if (aContent === bContent) return 0;
+            }
+            return 0;
+        });
+
+        if (this.hasColumnById('_rowIndex')) {
+            // update row index
+            const srNoColIndex = this.getColumnIndexById('_rowIndex');
+            this.rows.forEach((row, index) => {
+                const viewIndex = this.rowViewOrder.indexOf(index);
+                const cell = row[srNoColIndex];
+                cell.content = (viewIndex + 1) + '';
+            });
+        }
+    }
+
+    reverseArray(array) {
+        let left = null;
+        let right = null;
+        let length = array.length;
+
+        for (left = 0, right = length - 1; left < right; left += 1, right -= 1) {
+            const temporary = array[left];
+
+            array[left] = array[right];
+            array[right] = temporary;
+        }
+    }
+
+    switchColumn(index1, index2) {
+        // update columns
+        const temp = this.columns[index1];
+        this.columns[index1] = this.columns[index2];
+        this.columns[index2] = temp;
+
+        this.columns[index1].colIndex = index1;
+        this.columns[index2].colIndex = index2;
+
+        // update rows
+        this.rows.forEach(row => {
+            const newCell1 = Object.assign({}, row[index1], {
+                colIndex: index2
+            });
+            const newCell2 = Object.assign({}, row[index2], {
+                colIndex: index1
+            });
+
+            row[index2] = newCell1;
+            row[index1] = newCell2;
+        });
+    }
+
+    removeColumn(index) {
+        index = +index;
+        const filter = cell => cell.colIndex !== index;
+        const map = (cell, i) => Object.assign({}, cell, {
+            colIndex: i
+        });
+        // update columns
+        this.columns = this.columns
+            .filter(filter)
+            .map(map);
+
+        // update rows
+        this.rows.forEach(row => {
+            // remove cell
+            row.splice(index, 1);
+            // update colIndex
+            row.forEach((cell, i) => {
+                cell.colIndex = i;
+            });
+        });
+    }
+
+    updateRow(row, rowIndex) {
+        if (row.length < this.columns.length) {
+            if (this.hasColumnById('_rowIndex')) {
+                const val = (rowIndex + 1) + '';
+
+                row = [val].concat(row);
+            }
+
+            if (this.hasColumnById('_checkbox')) {
+                const val = '<input type="checkbox" />';
+
+                row = [val].concat(row);
+            }
+        }
+
+        const _row = this.prepareRow(row, {rowIndex});
+        const index = this.rows.findIndex(row => row[0].rowIndex === rowIndex);
+        this.rows[index] = _row;
+
+        return _row;
+    }
+
+    updateCell(colIndex, rowIndex, options) {
+        let cell;
+        if (typeof colIndex === 'object') {
+            // cell object was passed,
+            // must have colIndex, rowIndex
+            cell = colIndex;
+            colIndex = cell.colIndex;
+            rowIndex = cell.rowIndex;
+            // the object passed must be merged with original cell
+            options = cell;
+        }
+        cell = this.getCell(colIndex, rowIndex);
+
+        // mutate object directly
+        for (let key in options) {
+            const newVal = options[key];
+            if (newVal !== undefined) {
+                cell[key] = newVal;
+            }
+        }
+
+        return cell;
+    }
+
+    updateColumn(colIndex, keyValPairs) {
+        const column = this.getColumn(colIndex);
+        for (let key in keyValPairs) {
+            const newVal = keyValPairs[key];
+            if (newVal !== undefined) {
+                column[key] = newVal;
+            }
+        }
+        return column;
+    }
+
+    filterRows(filters) {
+        // No list view context (e.g. script/query reports): the overridden
+        // options.filterRows issues a list-view server call via `cur_list`, which
+        // does not exist here and throws. Filter the already-loaded rows on the
+        // client instead, keeping `this.rows` intact (only the view order changes)
+        // so clearing or widening a filter restores the hidden rows.
+        if (typeof cur_list === 'undefined' || !cur_list || !cur_list.doctype) {
+            const rowsToShow = clientFilterRows(this.rows, filters, {
+                columns: this.columns,
+                data: this
+            });
+            this._filteredRows = rowsToShow;
+            this.rowViewOrder = rowsToShow;
+            return Promise.resolve({
+                rowsToShow,
+                rowsToHide: []
+            });
+        }
+        return this.options.filterRows(this.rows, filters, {
+            doctype: this.options.doctype,
+            columns: this.columns,
+            data: this
+        })
+            .then(filteredRows => {
+                this.rows = filteredRows;
+                this._filteredRows = filteredRows.map((row, index) => index);
+                this.rowViewOrder = this._filteredRows;
+                return {
+                    rowsToShow: this._filteredRows,
+                    rowsToHide: []
+                };
+            });
+    }
+
+    getFilteredRowIndices() {
+        return this._filteredRows || this.getAllRowIndices();
+    }
+
+    getAllRowIndices() {
+        return this.rows.map(row => row.meta.rowIndex);
+    }
+
+    getRowCount() {
+        return this.rows.length;
+    }
+
+    _getNextRowCount() {
+        const val = this.rowCount;
+
+        this.rowCount++;
+        return val;
+    }
+
+    getRows(start, end) {
+        return this.rows.slice(start, end);
+    }
+
+    getRowsForView(start, end) {
+        const rows = this.rowViewOrder.map(i => this.rows[i]);
+        return rows.slice(start, end);
+    }
+
+    getColumns(skipStandardColumns) {
+        let columns = this.columns;
+
+        if (skipStandardColumns) {
+            columns = columns.slice(this.getStandardColumnCount());
+        }
+
+        return columns;
+    }
+
+    getStandardColumnCount() {
+        if (this.options.checkboxColumn && this.options.serialNoColumn) {
+            return 2;
+        }
+
+        if (this.options.checkboxColumn || this.options.serialNoColumn) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    getColumnCount(skipStandardColumns) {
+        let val = this.columns.length;
+
+        if (skipStandardColumns) {
+            val = val - this.getStandardColumnCount();
+        }
+
+        return val;
+    }
+
+    getColumn(colIndex) {
+        colIndex = +colIndex;
+
+        if (colIndex < 0) {
+            // negative indexes
+            colIndex = this.columns.length + colIndex;
+        }
+
+        return this.columns.find(col => col.colIndex === colIndex);
+    }
+
+    getColumnById(id) {
+        return this.columns.find(col => col.id === id);
+    }
+
+    getRow(rowIndex) {
+        rowIndex = +rowIndex;
+        return this.rows[rowIndex];
+    }
+
+    getCell(colIndex, rowIndex) {
+        rowIndex = +rowIndex;
+        colIndex = +colIndex;
+        return this.getRow(rowIndex)[colIndex];
+    }
+
+    getChildren(parentRowIndex) {
+        parentRowIndex = +parentRowIndex;
+        const parentIndent = this.getRow(parentRowIndex).meta.indent;
+        const out = [];
+
+        for (let i = parentRowIndex + 1; i < this.rowCount; i++) {
+            const row = this.getRow(i);
+            if (isNaN(row.meta.indent)) continue;
+
+            if (row.meta.indent > parentIndent) {
+                out.push(i);
+            }
+
+            if (row.meta.indent === parentIndent) {
+                break;
+            }
+        }
+
+        return out;
+    }
+
+    getImmediateChildren(parentRowIndex) {
+        parentRowIndex = +parentRowIndex;
+        const parentIndent = this.getRow(parentRowIndex).meta.indent;
+        const out = [];
+        const childIndent = parentIndent + 1;
+
+        for (let i = parentRowIndex + 1; i < this.rowCount; i++) {
+            const row = this.getRow(i);
+            if (isNaN(row.meta.indent) || row.meta.indent > childIndent) continue;
+
+            if (row.meta.indent === childIndent) {
+                out.push(i);
+            }
+
+            if (row.meta.indent === parentIndent) {
+                break;
+            }
+        }
+
+        return out;
+    }
+
+    get() {
+        return {
+            columns: this.columns,
+            rows: this.rows
+        };
+    }
+
+    /**
+     * Returns the original data which was passed
+     * based on rowIndex
+     * @param {Number} rowIndex
+     * @returns Array|Object
+     * @memberof DataManager
+     */
+    getData(rowIndex) {
+        return this.data[rowIndex];
+    }
+
+    hasColumn(name) {
+        return Boolean(this.columns.find(col => col.content === name));
+    }
+
+    hasColumnById(id) {
+        return Boolean(this.columns.find(col => col.id === id));
+    }
+
+    getColumnIndex(name) {
+        return this.columns.findIndex(col => col.content === name);
+    }
+
+    getColumnIndexById(id) {
+        return this.columns.findIndex(col => col.id === id);
+    }
+
+    getCheckboxHTML() {
+        return '<input type="checkbox" />';
+    }
+}
+
+// Custom Errors
+class DataError extends TypeError {}
+
 class ColumnManager {
     constructor(instance) {
         this.instance = instance;
@@ -4158,6 +4646,14 @@ class ColumnManager {
         const promises = selectInputs.map(input => {
             const colIndex = input.dataset.colIndex;
             const column = this.datamanager.getColumn(colIndex);
+            // Script/query reports carry no `docfield` and no list view (`cur_list`)
+            // context, while the autocomplete options are fetched through a
+            // list-view server call. Skip initialisation here so the field simply
+            // behaves as a plain text (contains) filter instead of throwing.
+            if (!column || !column.docfield || !column.docfield.fieldtype ||
+                typeof cur_list === 'undefined' || !cur_list) {
+                return Promise.resolve();
+            }
             const fieldtype = column.docfield.fieldtype;
 
             if (fieldtype === 'Check') {
@@ -4885,7 +5381,11 @@ class RowManager {
         if (props.isFilter) {
             row = row.map(cell => {
                 // //
-                const fieldtype = cell.docfield ? cell.docfield.fieldtype : null;
+                // Script/query reports expose the column type via `cell.fieldtype`
+                // (they carry no `docfield` object). Fall back to it so the filter
+                // input gets a real data-fieldtype instead of "null" — otherwise the
+                // [data-fieldtype="null"] CSS rule hides every filter field.
+                const fieldtype = (cell.docfield ? cell.docfield.fieldtype : null) || cell.fieldtype || null;
                 return Object.assign({}, cell, {
                     content: this.getFilterInput({
                         colIndex: cell.colIndex,
@@ -6176,263 +6676,6 @@ class TranslationManager {
     getPluralizedTranslation(translations, count) {
         return translations[count] || translations['default'];
     }
-}
-
-function cleanDateString(dateString) {
-    const dateFormats = [
-        { regex: /^\d{2}-\d{2}-\d{4}$/, format: 'DD-MM-YYYY' },
-        { regex: /^\d{4}-\d{2}-\d{2}$/, format: 'YYYY-MM-DD' }
-    ];
-
-    for (let { regex, format: format$$1 } of dateFormats) {
-        if (regex.test(dateString)) {
-            const dateParts = dateString.split('-');
-            let day, month, year;
-            if (format$$1 === 'DD-MM-YYYY') {
-                day = dateParts[0].padStart(2, '0');
-                month = dateParts[1].padStart(2, '0');
-                year = dateParts[2];
-            } else if (format$$1 === 'YYYY-MM-DD') {
-                year = dateParts[0];
-                month = dateParts[1].padStart(2, '0');
-                day = dateParts[2].padStart(2, '0');
-            }
-            if (isValidDate(day, month, year)) {
-                return `${year}-${month}-${day}`;
-            }
-        }
-    }
-
-    console.error('Invalid date string:', dateString);
-    return null;
-}
-
-function isValidDate(day, month, year) {
-    const date = new Date(`${year}-${month}-${day}`);
-    return date.getFullYear() == year && (date.getMonth() + 1) == month && date.getDate() == day;
-}
-
-function processFilter(column, keyword, doctype) {
-    if (column && column.docfield && column.docfield.fieldtype === 'Currency') {
-        return [doctype, column.id, 'like', `${keyword}%`];
-    } else if (column && column.docfield && column.docfield.fieldtype === 'Percent') {
-        // Vérifier si le champ est de type Percent
-        const parsedKeyword = parseFloat(keyword);
-        if (!isNaN(parsedKeyword)) {
-            // Retourner un filtre exact si le mot-clé est un nombre (comme 0)
-            return [doctype, column.id, '=', parsedKeyword];
-        }
-        console.error('Invalid percent format:', keyword);
-        return null;
-
-    } else if (column && column.id.includes(':')) {
-        const [childDoctype, childField] = column.id.split(':');
-        return [childDoctype, childField, 'like', `%${keyword}%`];
-    } else if (column) {
-        if (keyword.includes(';')) {
-            const keywordsArray = keyword.split(';').map(k => k.trim());
-            return [doctype, column.id, 'in', keywordsArray];
-        }
-        if (column.docfield.fieldtype === 'Date') {
-            const cleanedDate = cleanDateString(keyword);
-            if (cleanedDate) {
-                return [doctype, column.id, '=', cleanedDate];
-            }
-            console.error('Invalid date format:', keyword);
-            return null;
-
-        } else if (column.docfield.fieldtype === 'Select' || column.docfield.fieldtype === 'Link') {
-            if (keyword.includes(';')) {
-                const keywordsArray = keyword.split(';').map(k => k.trim());
-                return [doctype, column.id, 'in', keywordsArray];
-            }
-            // Détecter si c'est un champ de statut
-            const columnName = (column.name || column.id || '').toLowerCase();
-            let isStatusField = columnName.includes('status') || columnName.includes('state') ||
-                                columnName === 'docstatus' || columnName.includes('workflow_state');
-
-            // Vérifier aussi les options pour détecter un champ de statut
-            if (!isStatusField && column.docfield.fieldtype === 'Select' && column.docfield.options) {
-                const options = column.docfield.options.toLowerCase();
-                const statusPatterns = ['paid', 'unpaid', 'open', 'closed', 'pending', 'draft',
-                    'submitted', 'cancelled', 'completed', 'active', 'inactive'];
-                isStatusField = statusPatterns.some(pattern => options.includes(pattern));
-            }
-
-            if (isStatusField) {
-                // Pour les champs de statut, utiliser une égalité exacte
-                return [doctype, column.id, '=', keyword];
-            }
-
-            return [doctype, column.id, 'like', `%${keyword}%`];
-
-        }
-        return [doctype, column.id, 'like', `%${keyword}%`];
-    }
-    console.warn(`Colonne invalide à l'index ${colIndex}`);
-    return null;
-
-}
-
-function filterRows(rows, filters, data, start = 0, page_length = 10000) {
-    return new Promise((resolve, reject) => {
-        const doctype = cur_list.doctype;
-        let frappeFilters = [];
-
-        const existingFilters = cur_list.get_filters_for_args();
-        frappeFilters = frappeFilters.concat(existingFilters);
-
-        Object.keys(filters).forEach(colIndex => {
-            const keyword = filters[colIndex];
-            const column = data.columns.find(col => col.colIndex == colIndex);
-            const filter = processFilter(column, keyword, doctype);
-            if (filter) {
-                frappeFilters.push(filter);
-            }
-        });
-
-        const args = cur_list.get_call_args();
-        args.args.filters = frappeFilters;
-        args.args.start = start;
-        args.args.page_length = page_length;
-
-        frappe.call(args).then(r => {
-            cur_list.prepare_data(r);
-            let page_length = r.message.values.length;
-            const pagingArea = cur_list.$paging_area[0];
-
-            const listCountElement = pagingArea.querySelector('.list-count');
-            if (listCountElement) {
-                listCountElement.textContent = page_length;
-            }
-            const btnMore = pagingArea.querySelector('.btn-more');
-            if (btnMore) {
-                btnMore.style.display = 'none';
-            }
-
-            if (page_length < 100) {
-                page_length = 100;
-            }
-            cur_list.page_length = page_length;
-            cur_list.total_count = page_length;
-
-            const formattedRows = cur_list.data.map((rowData, rowIndex) => {
-                return data.columns
-                    .filter(column => column.visible !== false)
-                    .map((column, colIndex) => {
-                        const cellClass = `dt-cell dt-cell--col-${colIndex} dt-cell--${colIndex}-${rowIndex} dt-cell--row-${rowIndex}`;
-                        const contentClass = `dt-cell__content dt-cell__content--col-${colIndex}`;
-                        let cellData = null;
-
-                        if (column.id.includes(':')) {
-                            const [childDoctype, childField] = column.id.split(':');
-                            const childData = rowData[`${childDoctype}:${childField}`];
-                            cellData = childData || rowData[childField] || null;
-                        } else {
-                            cellData = rowData[column.field] || null;
-                        }
-
-                        if (column.field === 'meta') {
-                            return {
-                                content: cur_list.get_meta_html(rowData),
-                                rowIndex: rowIndex,
-                                colIndex: colIndex,
-                                column: column,
-                                sortOrder: column.sortOrder,
-                                editable: column.editable,
-                                focusable: column.focusable,
-                                dropdown: column.dropdown,
-                                width: column.width,
-                                name: column.name,
-                                docfield: column.docfield || {},
-                                attributes: {
-                                    class: cellClass,
-                                    'data-row-index': rowIndex,
-                                    'data-col-index': colIndex,
-                                    'tabindex': 0
-                                },
-                                contentAttributes: {
-                                    class: contentClass,
-                                    title: cellData ? cellData.toString() : ''
-                                }
-                            };
-                        }
-
-                        if (column.id === '_checkbox') {
-                            cellData = '<input type="checkbox">';
-                        } else if (column.id === '_rowIndex') {
-                            cellData = rowIndex + 1;
-                        }
-
-                        return {
-                            content: cellData,
-                            rowIndex: rowIndex,
-                            colIndex: colIndex,
-                            column: column,
-                            sortOrder: column.sortOrder,
-                            editable: column.editable,
-                            focusable: column.focusable,
-                            dropdown: column.dropdown,
-                            width: column.width,
-                            name: column.name,
-                            docfield: column.docfield || {},
-                            attributes: {
-                                class: cellClass,
-                                'data-row-index': rowIndex,
-                                'data-col-index': colIndex,
-                                'tabindex': 0
-                            },
-                            contentAttributes: {
-                                class: contentClass,
-                                title: cellData ? cellData.toString() : ''
-                            }
-                        };
-                    });
-            });
-
-            // Appliquer le tri si une colonne est triée
-            const sortedColumn = data.columns.find(col => col.sortOrder && col.sortOrder !== 'none');
-            if (sortedColumn) {
-                formattedRows.sort((a, b) => {
-                    const aValue = a.find(cell => cell.colIndex === sortedColumn.colIndex).content;
-                    const bValue = b.find(cell => cell.colIndex === sortedColumn.colIndex).content;
-                    if (sortedColumn.sortOrder === 'asc') {
-                        return aValue > bValue ? 1 : -1;
-                    }
-                    return aValue < bValue ? 1 : -1;
-
-                });
-            }
-
-            formattedRows.forEach((row, rowIndex) => {
-                row.meta = row.meta || {};
-                row.meta.rowIndex = rowIndex;
-                row.meta.indent = row.meta.indent || 0;
-                row.meta.isLeaf = row.meta.isLeaf !== undefined ? row.meta.isLeaf : true;
-                row.meta.isTreeNodeClose = row.meta.isTreeNodeClose !== undefined ? row.meta.isTreeNodeClose : false;
-            });
-
-            data.rows = formattedRows;
-
-            // Hook: Allow cur_list to add additional rows (like totals row)
-            if (cur_list && typeof cur_list.add_totals_to_filtered_rows === 'function') {
-                const totalsRow = cur_list.add_totals_to_filtered_rows(formattedRows, data.columns);
-                if (totalsRow) {
-                    formattedRows.push(totalsRow);
-                    data.rows = formattedRows;
-                }
-            }
-
-            if (typeof data.refresh === 'function') {
-                data.refresh(formattedRows);
-            }
-
-            resolve(formattedRows);
-        }).catch(error => {
-            console.error('Erreur lors de l\'appel de Frappe:', error);
-            reject(error);
-        });
-    });
 }
 
 function getDefaultOptions(instance) {

@@ -4,6 +4,7 @@ import {
     isNumber,
     notSet
 } from './utils';
+import { clientFilterRows } from './filterRows';
 
 export default class DataManager {
     constructor(options) {
@@ -435,6 +436,23 @@ export default class DataManager {
     }
 
     filterRows(filters) {
+        // No list view context (e.g. script/query reports): the overridden
+        // options.filterRows issues a list-view server call via `cur_list`, which
+        // does not exist here and throws. Filter the already-loaded rows on the
+        // client instead, keeping `this.rows` intact (only the view order changes)
+        // so clearing or widening a filter restores the hidden rows.
+        if (typeof cur_list === 'undefined' || !cur_list || !cur_list.doctype) {
+            const rowsToShow = clientFilterRows(this.rows, filters, {
+                columns: this.columns,
+                data: this
+            });
+            this._filteredRows = rowsToShow;
+            this.rowViewOrder = rowsToShow;
+            return Promise.resolve({
+                rowsToShow,
+                rowsToHide: []
+            });
+        }
         return this.options.filterRows(this.rows, filters, {
             doctype: this.options.doctype,
             columns: this.columns,

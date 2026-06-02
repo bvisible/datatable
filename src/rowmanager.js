@@ -349,7 +349,11 @@ export default class RowManager {
         if (props.isFilter) {
             row = row.map(cell => {
                 // //
-                const fieldtype = cell.docfield ? cell.docfield.fieldtype : null;
+                // Script/query reports expose the column type via `cell.fieldtype`
+                // (they carry no `docfield` object). Fall back to it so the filter
+                // input gets a real data-fieldtype instead of "null" — otherwise the
+                // [data-fieldtype="null"] CSS rule hides every filter field.
+                const fieldtype = (cell.docfield ? cell.docfield.fieldtype : null) || cell.fieldtype || null;
                 return Object.assign({}, cell, {
                     content: this.getFilterInput({
                         colIndex: cell.colIndex,

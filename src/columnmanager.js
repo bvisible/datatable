@@ -591,6 +591,14 @@ export default class ColumnManager {
         const promises = selectInputs.map(input => {
             const colIndex = input.dataset.colIndex;
             const column = this.datamanager.getColumn(colIndex);
+            // Script/query reports carry no `docfield` and no list view (`cur_list`)
+            // context, while the autocomplete options are fetched through a
+            // list-view server call. Skip initialisation here so the field simply
+            // behaves as a plain text (contains) filter instead of throwing.
+            if (!column || !column.docfield || !column.docfield.fieldtype ||
+                typeof cur_list === 'undefined' || !cur_list) {
+                return Promise.resolve();
+            }
             const fieldtype = column.docfield.fieldtype;
 
             if (fieldtype === 'Check') {
