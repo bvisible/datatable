@@ -2909,6 +2909,10 @@ class CellManager {
                 if (!colour) {
                     colour = frappe.utils.guess_colour(value);
                 }
+                // Neoffice: normalise submission states fleet-wide — Draft=gray
+                // (neutral, not an error), Submitted=green (validated).
+                if (value === 'Draft') colour = 'gray';
+                else if (value === 'Submitted') colour = 'green';
                 window._dtSelectColourCache[cacheKey] = colour;
             }
             contentHTML = `<span class="filterable indicator-pill ${colour} ellipsis"
