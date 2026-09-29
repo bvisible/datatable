@@ -288,8 +288,9 @@
 .dt-dropdown__list {
         position: fixed;
         min-width: 8rem;
-        /* Must sit above sticky columns (.dt-cell--sticky-top has z-index: 4),
-           otherwise the frozen first column overlaps the open column menu. */
+        /* //// Neoffice — kept at 100 (upstream raised it to 10, #236): it must sit above the
+           sticky columns (.dt-cell--sticky-top has z-index: 4) and above the layers our desk
+           puts over a list; 10 was not enough there. */
         z-index: 100;
         cursor: pointer;
         background-color: #fff;
@@ -334,6 +335,7 @@
     left: 50%;
     -webkit-transform: translateX(-50%);
             transform: translateX(-50%);
+    z-index: 5;
 }
 
 .dt-toast__message {

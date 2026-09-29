@@ -83,7 +83,7 @@ export default class BodyRenderer {
     }
 
     render() {
-        const rows = this.datamanager.getRowsForView();
+        const rows = this.getRowsToRender();
         this.renderRows(rows);
         this.instance.setDimensions();
 
@@ -94,6 +94,20 @@ export default class BodyRenderer {
                 header.scrollLeft = bodyScrollable.scrollLeft;
             });
         }
+    }
+
+    // Keep the current tree expand/collapse state on a full re-render
+    getRowsToRender() {
+        const rows = this.datamanager.getRowsForView();
+        let closedIndent = null;
+        return rows.filter(row => {
+            const { indent, isTreeNodeClose } = row.meta;
+            if (closedIndent !== null && indent > closedIndent) {
+                return false;
+            }
+            closedIndent = isTreeNodeClose ? indent : null;
+            return true;
+        });
     }
 
     renderFooter() {

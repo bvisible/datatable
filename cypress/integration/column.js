@@ -35,6 +35,29 @@ describe('Column', function () {
         cy.clickDropdownItem(2, 'Reset sorting');
     });
 
+    it('sorts on the value returned by a column sortValue hook', function () {
+        // Sort the Name column by surname instead of the cell content.
+        cy.window().then(win => {
+            win.datatable.getColumn(2).sortValue = cell => String(cell.content).split(' ').pop();
+        });
+
+        cy.clickDropdown(2);
+        cy.clickDropdownItem(2, 'Sort Ascending');
+
+        cy.window().then(win => {
+            const datamanager = win.datatable.datamanager;
+            const surnames = datamanager.rowViewOrder
+                .map(rowIndex => String(datamanager.getCell(2, rowIndex).content).split(' ').pop());
+
+            expect(surnames).to.deep.equal([...surnames].sort());
+        });
+
+        cy.clickDropdownItem(2, 'Reset sorting');
+        cy.window().then(win => {
+            delete win.datatable.getColumn(2).sortValue;
+        });
+    });
+
     it('removes column using dropdown action', function () {
         cy.get('.dt-cell--header').should('have.length', 12);
 
@@ -58,6 +81,19 @@ describe('Column', function () {
             cy.getCell(4, 1)
                 .should('have.css', 'width', width);
         });
+    });
+
+    it('resizes body cells while the column is being dragged', function () {
+        cy.get('.dt-cell--header-4 .dt-cell__resize-handle')
+            .trigger('mousedown')
+            .trigger('mousemove', { pageX: 700, pageY: 20, which: 1 });
+
+        cy.getColumnCell(4).invoke('css', 'width').then((width) => {
+            cy.getCell(4, 1)
+                .should('have.css', 'width', width);
+        });
+
+        cy.get('body').trigger('mouseup');
     });
 
     it('resize column using double click', function () {
@@ -124,6 +160,34 @@ describe('Column', function () {
                 expect(nextSerialHeaderLeft).to.be.closeTo(nextSerialBodyLeft, 1);
                 expect(nextOfficeHeaderLeft).to.be.closeTo(nextOfficeBodyLeft, 1);
                 expect(nextNameLeft).to.be.lessThan(initialNameLeft);
+            });
+        });
+    });
+
+    it('keeps other pinned columns aligned after resizing a pinned column', function () {
+        cy.clickDropdown(2);
+        cy.clickDropdownItem(2, 'Freeze');
+        cy.clickDropdown(3);
+        cy.clickDropdownItem(3, 'Freeze');
+
+        cy.get('.dt-cell--header-2 .dt-cell__resize-handle')
+            .trigger('mousedown')
+            .trigger('mousemove', { pageX: 700, pageY: 20, which: 1 })
+            .trigger('mouseup');
+
+        cy.get('.dt-scrollable').then(($scrollable) => {
+            const scrollable = $scrollable[0];
+
+            scrollable.scrollLeft = 220;
+            scrollable.dispatchEvent(new Event('scroll'));
+
+            cy.wait(50).then(() => {
+                const resizedBodyCell = Cypress.$('.dt-cell--2-0')[0].getBoundingClientRect();
+                const nextStickyBodyCell = Cypress.$('.dt-cell--3-0')[0].getBoundingClientRect();
+                const nextStickyHeaderCell = Cypress.$('.dt-cell--header-3')[0].getBoundingClientRect();
+
+                expect(nextStickyBodyCell.left).to.be.closeTo(resizedBodyCell.right, 1);
+                expect(nextStickyHeaderCell.left).to.be.closeTo(nextStickyBodyCell.left, 1);
             });
         });
     });

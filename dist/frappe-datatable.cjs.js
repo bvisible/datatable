@@ -321,44 +321,6 @@ var now = function() {
 
 var now_1 = now;
 
-/** Used to match a single whitespace character. */
-var reWhitespace = /\s/;
-
-/**
- * Used by `_.trim` and `_.trimEnd` to get the index of the last non-whitespace
- * character of `string`.
- *
- * @private
- * @param {string} string The string to inspect.
- * @returns {number} Returns the index of the last non-whitespace character.
- */
-function trimmedEndIndex(string) {
-  var index = string.length;
-
-  while (index-- && reWhitespace.test(string.charAt(index))) {}
-  return index;
-}
-
-var _trimmedEndIndex = trimmedEndIndex;
-
-/** Used to match leading whitespace. */
-var reTrimStart = /^\s+/;
-
-/**
- * The base implementation of `_.trim`.
- *
- * @private
- * @param {string} string The string to trim.
- * @returns {string} Returns the trimmed string.
- */
-function baseTrim(string) {
-  return string
-    ? string.slice(0, _trimmedEndIndex(string) + 1).replace(reTrimStart, '')
-    : string;
-}
-
-var _baseTrim = baseTrim;
-
 /** Built-in value references. */
 var Symbol = _root.Symbol;
 
@@ -516,6 +478,9 @@ var isSymbol_1 = isSymbol;
 /** Used as references for various `Number` constants. */
 var NAN = 0 / 0;
 
+/** Used to match leading and trailing whitespace. */
+var reTrim = /^\s+|\s+$/g;
+
 /** Used to detect bad signed hexadecimal string values. */
 var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
 
@@ -565,7 +530,7 @@ function toNumber(value) {
   if (typeof value != 'string') {
     return value === 0 ? value : +value;
   }
-  value = _baseTrim(value);
+  value = value.replace(reTrim, '');
   var isBinary = reIsBinary.test(value);
   return (isBinary || reIsOctal.test(value))
     ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
@@ -745,7 +710,6 @@ function debounce(func, wait, options) {
       }
       if (maxing) {
         // Handle invocations in a tight loop.
-        clearTimeout(timerId);
         timerId = setTimeout(timerExpired, wait);
         return invokeFunc(lastCallTime);
       }
@@ -3730,14 +3694,18 @@ class DataManager {
             }
         }
 
+        const sortValue = cell => {
+            const hook = cell.column && cell.column.sortValue;
+            const value = hook ? hook(cell) : cell.content;
+            return value == null ? '' : value;
+        };
+
         this.rowViewOrder.sort((a, b) => {
             const aIndex = a;
             const bIndex = b;
 
-            let aContent = this.getCell(colIndex, a).content;
-            let bContent = this.getCell(colIndex, b).content;
-            aContent = aContent == null ? '' : aContent;
-            bContent = bContent == null ? '' : bContent;
+            const aContent = sortValue(this.getCell(colIndex, a));
+            const bContent = sortValue(this.getCell(colIndex, b));
 
             if (sortOrder === 'none') {
                 return aIndex - bIndex;
@@ -4252,12 +4220,6 @@ class ColumnManager {
             document.body.classList.remove('dt-resize');
             if (!$resizingCell) return;
             isDragging = false;
-
-            const {
-                colIndex
-            } = $.data($resizingCell);
-            this.setColumnWidth(colIndex);
-            this.style.setBodyStyle();
             $resizingCell = null;
         };
         $.on(document.body, 'mouseup', onMouseup);
@@ -4285,6 +4247,9 @@ class ColumnManager {
                 width: finalWidth
             });
             this.setColumnHeaderWidth(colIndex);
+            this.setColumnWidth(colIndex);
+            this.style.refreshStickyColumns();
+            this.style.setBodyStyle();
         };
         $.on(document.body, 'mousemove', onMouseMove);
         this.instance.on('onDestroy', () => {
@@ -4321,6 +4286,7 @@ class ColumnManager {
             this.datamanager.updateColumn(colIndex, { width });
             this.setColumnHeaderWidth(colIndex);
             this.setColumnWidth(colIndex);
+            this.style.refreshStickyColumns();
         });
     }
 
@@ -6018,7 +5984,7 @@ class BodyRenderer {
     }
 
     render() {
-        const rows = this.datamanager.getRowsForView();
+        const rows = this.getRowsToRender();
         this.renderRows(rows);
         this.instance.setDimensions();
 
@@ -6029,6 +5995,20 @@ class BodyRenderer {
                 header.scrollLeft = bodyScrollable.scrollLeft;
             });
         }
+    }
+
+    // Keep the current tree expand/collapse state on a full re-render
+    getRowsToRender() {
+        const rows = this.datamanager.getRowsForView();
+        let closedIndent = null;
+        return rows.filter(row => {
+            const { indent, isTreeNodeClose } = row.meta;
+            if (closedIndent !== null && indent > closedIndent) {
+                return false;
+            }
+            closedIndent = isTreeNodeClose ? indent : null;
+            return true;
+        });
     }
 
     renderFooter() {
@@ -6275,8 +6255,7 @@ class Style {
         this.setupColumnWidth();
         this.distributeRemainingWidth();
         this.setColumnStyle();
-        this.setStickyColumnStyle();
-        this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
+        this.refreshStickyColumns();
         this.setBodyStyle();
     }
 
@@ -6434,6 +6413,10 @@ class Style {
                 this.columnmanager.setColumnHeaderWidth(column.colIndex);
                 this.columnmanager.setColumnWidth(column.colIndex);
             });
+        this.refreshStickyColumns();
+    }
+
+    refreshStickyColumns() {
         this.setStickyColumnStyle();
         this.updateStickyTopPositions(this.bodyScrollable.scrollLeft || 0);
     }
@@ -6500,11 +6483,14 @@ class Style {
     setStickyColumnStyle() {
         if (!this.datamanager || !this.datamanager.getColumns) return;
 
+        const columns = this.datamanager.getColumns();
+        if (!columns.some(column => column.sticky) && !(this._stickySelectors || []).length) return;
+
         const stickySelectors = [];
         let stickyOffset = 0;
         let normalOffset = 0;
 
-        this.datamanager.getColumns().forEach((column) => {
+        columns.forEach((column) => {
             const $headerCell = this.getColumnHeaderElement(column.colIndex);
             const renderedWidth = $headerCell ? $headerCell.offsetWidth : column.width;
 
