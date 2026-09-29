@@ -6136,6 +6136,29 @@ class Style {
         if (this.options.layout === 'fluid') {
             $.on(window, 'resize', this.onWindowResize);
         }
+
+        // //// Neoffice — the table also follows its own box. A list widens or narrows without
+        // //// any window resize (a side panel folded, the desk's menu collapsed): the body kept
+        // //// the width it was drawn with, and the columns on the right had no rows under them.
+        if (typeof ResizeObserver !== 'undefined') {
+            let last = this.datatableWrapper.clientWidth;
+            this.resizeObserver = new ResizeObserver(() => {
+                const width = this.datatableWrapper.clientWidth;
+                if (!width || width === last) return;
+                last = width;
+                this.onContainerResize();
+            });
+            this.resizeObserver.observe(this.datatableWrapper);
+        }
+    }
+
+    // //// Neoffice — added: the box of the table changed width (see bindResizeWindow).
+    onContainerResize() {
+        if (this.options.layout === 'fluid') {
+            this.distributeRemainingWidth();
+            this.refreshColumnWidth();
+        }
+        this.setBodyStyle();
     }
 
     bindScrollHeader() {
@@ -6178,6 +6201,8 @@ class Style {
     destroy() {
         this.styleEl.remove();
         $.off(window, 'resize', this.onWindowResize);
+        // //// Neoffice — the observer of bindResizeWindow goes with the table.
+        if (this.resizeObserver) this.resizeObserver.disconnect();
     }
 
     setStyle(selector, styleObject) {
@@ -6422,6 +6447,9 @@ class Style {
     }
 
     setBodyStyle() {
+        // //// Neoffice — measured freed. The first row is as wide as this body, so a body left
+        // //// at the width it was drawn with could only ever grow by the 10 px added below.
+        $.removeStyle(this.bodyScrollable, 'width');
         const bodyWidth = $.style(this.datatableWrapper, 'width');
         const firstRow = $('.dt-row', this.bodyScrollable);
         if (!firstRow) return;
