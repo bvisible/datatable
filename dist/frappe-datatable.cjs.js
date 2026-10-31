@@ -4675,6 +4675,16 @@ class ColumnManager {
                 this.initializeAwesomplete(input, options);
                 return Promise.resolve();
             } else if (fieldtype === 'Link') {
+                // //// Neoffice — get_distinct_values now reads with the caller's permissions (bvisible/frappe
+                // //// 749bb98555, maintenance#2054) and refuses a doctype the user may neither select nor
+                // //// read; frappe.call turns that 403 into a "Not permitted" dialog on every report view
+                // //// load. Same test on the client (can_read covers read and shared documents, as the
+                // //// server does): a Link target the user cannot open gets no value list and keeps the
+                // //// plain text filter.
+                const linkDoctype = column.docfield.options;
+                if (!frappe.model.can_select(linkDoctype) && !frappe.model.can_read(linkDoctype)) {
+                    return Promise.resolve();
+                }
                 return frappe.call({
                     method: 'frappe.desk.reportview.get_distinct_values',
                     args: {

@@ -392,6 +392,13 @@ var DataTable = (function (Sortable) {
 
     var _objectToString = objectToString;
 
+    var _objectToString$1 = /*#__PURE__*/Object.freeze({
+        default: _objectToString,
+        __moduleExports: _objectToString
+    });
+
+    var objectToString$1 = ( _objectToString$1 && _objectToString ) || _objectToString$1;
+
     /** `Object#toString` result references. */
     var nullTag = '[object Null]',
         undefinedTag = '[object Undefined]';
@@ -412,7 +419,7 @@ var DataTable = (function (Sortable) {
       }
       return (symToStringTag$1 && symToStringTag$1 in Object(value))
         ? _getRawTag(value)
-        : _objectToString(value);
+        : objectToString$1(value);
     }
 
     var _baseGetTag = baseGetTag;
@@ -950,24 +957,10 @@ var DataTable = (function (Sortable) {
 
     var _getNative = getNative;
 
-    var _getNative$1 = /*#__PURE__*/Object.freeze({
-        default: _getNative,
-        __moduleExports: _getNative
-    });
-
-    var getNative$1 = ( _getNative$1 && _getNative ) || _getNative$1;
-
     /* Built-in method references that are verified to be native. */
-    var nativeCreate = getNative$1(Object, 'create');
+    var nativeCreate = _getNative(Object, 'create');
 
     var _nativeCreate = nativeCreate;
-
-    var _nativeCreate$1 = /*#__PURE__*/Object.freeze({
-        default: _nativeCreate,
-        __moduleExports: _nativeCreate
-    });
-
-    var nativeCreate$1 = ( _nativeCreate$1 && _nativeCreate ) || _nativeCreate$1;
 
     /**
      * Removes all key-value entries from the hash.
@@ -977,7 +970,7 @@ var DataTable = (function (Sortable) {
      * @memberOf Hash
      */
     function hashClear() {
-      this.__data__ = nativeCreate$1 ? nativeCreate$1(null) : {};
+      this.__data__ = _nativeCreate ? _nativeCreate(null) : {};
       this.size = 0;
     }
 
@@ -1021,7 +1014,7 @@ var DataTable = (function (Sortable) {
      */
     function hashGet(key) {
       var data = this.__data__;
-      if (nativeCreate$1) {
+      if (_nativeCreate) {
         var result = data[key];
         return result === HASH_UNDEFINED ? undefined : result;
       }
@@ -1047,7 +1040,7 @@ var DataTable = (function (Sortable) {
      */
     function hashHas(key) {
       var data = this.__data__;
-      return nativeCreate$1 ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
+      return _nativeCreate ? (data[key] !== undefined) : hasOwnProperty$3.call(data, key);
     }
 
     var _hashHas = hashHas;
@@ -1068,7 +1061,7 @@ var DataTable = (function (Sortable) {
     function hashSet(key, value) {
       var data = this.__data__;
       this.size += this.has(key) ? 0 : 1;
-      data[key] = (nativeCreate$1 && value === undefined) ? HASH_UNDEFINED$1 : value;
+      data[key] = (_nativeCreate && value === undefined) ? HASH_UNDEFINED$1 : value;
       return this;
     }
 
@@ -1153,6 +1146,13 @@ var DataTable = (function (Sortable) {
 
     var eq_1 = eq;
 
+    var eq$1 = /*#__PURE__*/Object.freeze({
+        default: eq_1,
+        __moduleExports: eq_1
+    });
+
+    var eq$2 = ( eq$1 && eq_1 ) || eq$1;
+
     /**
      * Gets the index at which the `key` is found in `array` of key-value pairs.
      *
@@ -1164,7 +1164,7 @@ var DataTable = (function (Sortable) {
     function assocIndexOf(array, key) {
       var length = array.length;
       while (length--) {
-        if (eq_1(array[length][0], key)) {
+        if (eq$2(array[length][0], key)) {
           return length;
         }
       }
@@ -1240,11 +1240,6 @@ var DataTable = (function (Sortable) {
 
     var _listCacheHas = listCacheHas;
 
-    var _listCacheHas$1 = /*#__PURE__*/Object.freeze({
-        default: _listCacheHas,
-        __moduleExports: _listCacheHas
-    });
-
     /**
      * Sets the list cache `key` to `value`.
      *
@@ -1270,15 +1265,6 @@ var DataTable = (function (Sortable) {
 
     var _listCacheSet = listCacheSet;
 
-    var _listCacheSet$1 = /*#__PURE__*/Object.freeze({
-        default: _listCacheSet,
-        __moduleExports: _listCacheSet
-    });
-
-    var listCacheHas$1 = ( _listCacheHas$1 && _listCacheHas ) || _listCacheHas$1;
-
-    var listCacheSet$1 = ( _listCacheSet$1 && _listCacheSet ) || _listCacheSet$1;
-
     /**
      * Creates an list cache object.
      *
@@ -1301,22 +1287,15 @@ var DataTable = (function (Sortable) {
     ListCache.prototype.clear = _listCacheClear;
     ListCache.prototype['delete'] = _listCacheDelete;
     ListCache.prototype.get = _listCacheGet;
-    ListCache.prototype.has = listCacheHas$1;
-    ListCache.prototype.set = listCacheSet$1;
+    ListCache.prototype.has = _listCacheHas;
+    ListCache.prototype.set = _listCacheSet;
 
     var _ListCache = ListCache;
 
-    var _ListCache$1 = /*#__PURE__*/Object.freeze({
-        default: _ListCache,
-        __moduleExports: _ListCache
-    });
-
     /* Built-in method references that are verified to be native. */
-    var Map = getNative$1(_root, 'Map');
+    var Map = _getNative(_root, 'Map');
 
     var _Map = Map;
-
-    var ListCache$1 = ( _ListCache$1 && _ListCache ) || _ListCache$1;
 
     /**
      * Removes all key-value entries from the map.
@@ -1329,12 +1308,17 @@ var DataTable = (function (Sortable) {
       this.size = 0;
       this.__data__ = {
         'hash': new _Hash,
-        'map': new (_Map || ListCache$1),
+        'map': new (_Map || _ListCache),
         'string': new _Hash
       };
     }
 
     var _mapCacheClear = mapCacheClear;
+
+    var _mapCacheClear$1 = /*#__PURE__*/Object.freeze({
+        default: _mapCacheClear,
+        __moduleExports: _mapCacheClear
+    });
 
     /**
      * Checks if `value` is suitable for use as unique object key.
@@ -1437,6 +1421,8 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheSet = mapCacheSet;
 
+    var mapCacheClear$1 = ( _mapCacheClear$1 && _mapCacheClear ) || _mapCacheClear$1;
+
     /**
      * Creates a map cache object to store key-value pairs.
      *
@@ -1456,7 +1442,7 @@ var DataTable = (function (Sortable) {
     }
 
     // Add methods to `MapCache`.
-    MapCache.prototype.clear = _mapCacheClear;
+    MapCache.prototype.clear = mapCacheClear$1;
     MapCache.prototype['delete'] = _mapCacheDelete;
     MapCache.prototype.get = _mapCacheGet;
     MapCache.prototype.has = _mapCacheHas;
@@ -1585,13 +1571,6 @@ var DataTable = (function (Sortable) {
 
     var _strictIndexOf = strictIndexOf;
 
-    var _strictIndexOf$1 = /*#__PURE__*/Object.freeze({
-        default: _strictIndexOf,
-        __moduleExports: _strictIndexOf
-    });
-
-    var strictIndexOf$1 = ( _strictIndexOf$1 && _strictIndexOf ) || _strictIndexOf$1;
-
     /**
      * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
      *
@@ -1603,7 +1582,7 @@ var DataTable = (function (Sortable) {
      */
     function baseIndexOf(array, value, fromIndex) {
       return value === value
-        ? strictIndexOf$1(array, value, fromIndex)
+        ? _strictIndexOf(array, value, fromIndex)
         : _baseFindIndex(array, _baseIsNaN, fromIndex);
     }
 
@@ -1663,7 +1642,7 @@ var DataTable = (function (Sortable) {
     var _cacheHas = cacheHas;
 
     /* Built-in method references that are verified to be native. */
-    var Set = getNative$1(_root, 'Set');
+    var Set = _getNative(_root, 'Set');
 
     var _Set = Set;
 
@@ -1786,13 +1765,6 @@ var DataTable = (function (Sortable) {
 
     var _baseUniq = baseUniq;
 
-    var _baseUniq$1 = /*#__PURE__*/Object.freeze({
-        default: _baseUniq,
-        __moduleExports: _baseUniq
-    });
-
-    var baseUniq$1 = ( _baseUniq$1 && _baseUniq ) || _baseUniq$1;
-
     /**
      * Creates a duplicate-free version of an array, using
      * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
@@ -1812,7 +1784,7 @@ var DataTable = (function (Sortable) {
      * // => [2, 1]
      */
     function uniq(array) {
-      return (array && array.length) ? baseUniq$1(array) : [];
+      return (array && array.length) ? _baseUniq(array) : [];
     }
 
     var uniq_1 = uniq;
@@ -4723,6 +4695,16 @@ var DataTable = (function (Sortable) {
                     this.initializeAwesomplete(input, options);
                     return Promise.resolve();
                 } else if (fieldtype === 'Link') {
+                    // //// Neoffice — get_distinct_values now reads with the caller's permissions (bvisible/frappe
+                    // //// 749bb98555, maintenance#2054) and refuses a doctype the user may neither select nor
+                    // //// read; frappe.call turns that 403 into a "Not permitted" dialog on every report view
+                    // //// load. Same test on the client (can_read covers read and shared documents, as the
+                    // //// server does): a Link target the user cannot open gets no value list and keeps the
+                    // //// plain text filter.
+                    const linkDoctype = column.docfield.options;
+                    if (!frappe.model.can_select(linkDoctype) && !frappe.model.can_read(linkDoctype)) {
+                        return Promise.resolve();
+                    }
                     return frappe.call({
                         method: 'frappe.desk.reportview.get_distinct_values',
                         args: {
