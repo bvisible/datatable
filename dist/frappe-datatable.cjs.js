@@ -1280,9 +1280,9 @@ ListCache.prototype.set = _listCacheSet;
 var _ListCache = ListCache;
 
 /* Built-in method references that are verified to be native. */
-var Map = _getNative(_root, 'Map');
+var Map$1 = _getNative(_root, 'Map');
 
-var _Map = Map;
+var _Map = Map$1;
 
 /**
  * Removes all key-value entries from the map.
@@ -3682,7 +3682,7 @@ class DataManager {
 
     _sortRows(colIndex, sortOrder) {
 
-        if (this.currentSort.colIndex === colIndex) {
+        if (!this.options.treeView && this.currentSort.colIndex === colIndex) {
             // reverse the array if only sortOrder changed
             if (
                 (this.currentSort.sortOrder === 'asc' && sortOrder === 'desc') ||
@@ -3721,15 +3721,53 @@ class DataManager {
             return 0;
         });
 
+        if (this.options.treeView) {
+            this._sortTreeRows();
+        }
+
         if (this.hasColumnById('_rowIndex')) {
             // update row index
             const srNoColIndex = this.getColumnIndexById('_rowIndex');
-            this.rows.forEach((row, index) => {
-                const viewIndex = this.rowViewOrder.indexOf(index);
-                const cell = row[srNoColIndex];
+            this.rowViewOrder.forEach((rowIndex, viewIndex) => {
+                const cell = this.rows[rowIndex][srNoColIndex];
                 cell.content = (viewIndex + 1) + '';
+                cell.html = null;
             });
         }
+    }
+
+    _sortTreeRows() {
+        // Use the column sort order to rank siblings without separating their children.
+        const sortPositions = new Map();
+        this.rowViewOrder.forEach((rowIndex, position) => {
+            sortPositions.set(rowIndex, position);
+        });
+
+        const root = { indent: -Infinity, children: [] };
+        const ancestors = [root];
+
+        this.rows.forEach((row, rowIndex) => {
+            const indent = Number(row.meta.indent) || 0;
+            while (ancestors[ancestors.length - 1].indent >= indent) {
+                ancestors.pop();
+            }
+
+            const node = { rowIndex, indent, children: [] };
+            ancestors[ancestors.length - 1].children.push(node);
+            ancestors.push(node);
+        });
+
+        const rowOrder = [];
+        function appendSiblings(siblings) {
+            siblings.sort((a, b) => sortPositions.get(a.rowIndex) - sortPositions.get(b.rowIndex));
+            for (const node of siblings) {
+                rowOrder.push(node.rowIndex);
+                appendSiblings(node.children);
+            }
+        }
+
+        appendSiblings(root.children);
+        this.rowViewOrder = rowOrder;
     }
 
     reverseArray(array) {
@@ -4246,6 +4284,7 @@ class ColumnManager {
             this.datamanager.updateColumn(colIndex, {
                 width: finalWidth
             });
+            this.instance.resizedColumnWidths.set(this.getColumn(colIndex).id, finalWidth);
             this.setColumnHeaderWidth(colIndex);
             this.setColumnWidth(colIndex);
             this.style.refreshStickyColumns();
@@ -4284,6 +4323,7 @@ class ColumnManager {
 
             let width = $.measureTextWidth(cellText) + padding;
             this.datamanager.updateColumn(colIndex, { width });
+            this.instance.resizedColumnWidths.set(this.getColumn(colIndex).id, width);
             this.setColumnHeaderWidth(colIndex);
             this.setColumnWidth(colIndex);
             this.style.refreshStickyColumns();
@@ -6943,6 +6983,7 @@ class DataTable {
             wrapper = document.querySelector(wrapper);
         }
         this.wrapper = wrapper;
+        this.resizedColumnWidths = new Map();
         if (!(this.wrapper instanceof HTMLElement)) {
             throw new Error('Invalid argument given for `wrapper`');
         }
@@ -7056,6 +7097,15 @@ class DataTable {
         this.datamanager.init(data, columns);
         this.render();
         this.setDimensions();
+        if (this.resizedColumnWidths.size) {
+            for (const column of this.datamanager.getColumns()) {
+                if (this.resizedColumnWidths.has(column.id)) {
+                    column.width = this.resizedColumnWidths.get(column.id);
+                }
+            }
+            this.style.refreshColumnWidth();
+            this.style.setBodyStyle();
+        }
     }
 
     destroy() {
@@ -7100,6 +7150,10 @@ class DataTable {
 
     getColumn(colIndex) {
         return this.datamanager.getColumn(colIndex);
+    }
+
+    getResizedColumnWidths() {
+        return new Map(this.resizedColumnWidths);
     }
 
     getColumns() {
