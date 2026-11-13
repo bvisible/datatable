@@ -165,3 +165,14 @@ export function escapeHTML(txt) {
 
     return String(txt).replace(/[&<>"'`=/]/g, (char) => escapeHtmlMapping[char] || char);
 };
+
+// //// Neoffice — added. Our fork reloads the desk's list view (`cur_list`) before a sort and when the
+// //// table is scrolled to its end, so a report view sorts and pages over all its records, not only the
+// //// 20 shown. But `cur_list` is only the LAST list view opened: null on a query report opened directly
+// //// (the sort threw "Cannot set properties of null" and never sorted, on every report), and a hidden
+// //// list on a report opened after one (the sort reloaded that list with 10,000 rows first). The list
+// //// is ours only when its own table is this one.
+export function ownListView(instance) {
+    const list = window.cur_list; // eslint-disable-line camelcase
+    return list && list.datatable === instance ? list : null;
+}

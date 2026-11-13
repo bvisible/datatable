@@ -290,18 +290,11 @@ var DataTable = (function (Sortable) {
 
     var _freeGlobal = freeGlobal;
 
-    var _freeGlobal$1 = /*#__PURE__*/Object.freeze({
-        default: _freeGlobal,
-        __moduleExports: _freeGlobal
-    });
-
-    var freeGlobal$1 = ( _freeGlobal$1 && _freeGlobal ) || _freeGlobal$1;
-
     /** Detect free variable `self`. */
     var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
 
     /** Used as a reference to the global object. */
-    var root = freeGlobal$1 || freeSelf || Function('return this')();
+    var root = _freeGlobal || freeSelf || Function('return this')();
 
     var _root = root;
 
@@ -332,13 +325,6 @@ var DataTable = (function (Sortable) {
 
     var _Symbol = Symbol;
 
-    var _Symbol$1 = /*#__PURE__*/Object.freeze({
-        default: _Symbol,
-        __moduleExports: _Symbol
-    });
-
-    var Symbol$1 = ( _Symbol$1 && _Symbol ) || _Symbol$1;
-
     /** Used for built-in method references. */
     var objectProto = Object.prototype;
 
@@ -353,7 +339,7 @@ var DataTable = (function (Sortable) {
     var nativeObjectToString = objectProto.toString;
 
     /** Built-in value references. */
-    var symToStringTag = Symbol$1 ? Symbol$1.toStringTag : undefined;
+    var symToStringTag = _Symbol ? _Symbol.toStringTag : undefined;
 
     /**
      * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.
@@ -411,7 +397,7 @@ var DataTable = (function (Sortable) {
         undefinedTag = '[object Undefined]';
 
     /** Built-in value references. */
-    var symToStringTag$1 = Symbol$1 ? Symbol$1.toStringTag : undefined;
+    var symToStringTag$1 = _Symbol ? _Symbol.toStringTag : undefined;
 
     /**
      * The base implementation of `getTag` without fallbacks for buggy environments.
@@ -430,11 +416,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _baseGetTag = baseGetTag;
-
-    var _baseGetTag$1 = /*#__PURE__*/Object.freeze({
-        default: _baseGetTag,
-        __moduleExports: _baseGetTag
-    });
 
     /**
      * Checks if `value` is object-like. A value is object-like if it's not `null`
@@ -466,15 +447,6 @@ var DataTable = (function (Sortable) {
 
     var isObjectLike_1 = isObjectLike;
 
-    var isObjectLike$1 = /*#__PURE__*/Object.freeze({
-        default: isObjectLike_1,
-        __moduleExports: isObjectLike_1
-    });
-
-    var baseGetTag$1 = ( _baseGetTag$1 && _baseGetTag ) || _baseGetTag$1;
-
-    var isObjectLike$2 = ( isObjectLike$1 && isObjectLike_1 ) || isObjectLike$1;
-
     /** `Object#toString` result references. */
     var symbolTag = '[object Symbol]';
 
@@ -497,7 +469,7 @@ var DataTable = (function (Sortable) {
      */
     function isSymbol(value) {
       return typeof value == 'symbol' ||
-        (isObjectLike$2(value) && baseGetTag$1(value) == symbolTag);
+        (isObjectLike_1(value) && _baseGetTag(value) == symbolTag);
     }
 
     var isSymbol_1 = isSymbol;
@@ -849,25 +821,27 @@ var DataTable = (function (Sortable) {
       }
       // The use of `Object#toString` avoids issues with the `typeof` operator
       // in Safari 9 which returns 'object' for typed arrays and other constructors.
-      var tag = baseGetTag$1(value);
+      var tag = _baseGetTag(value);
       return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
     }
 
     var isFunction_1 = isFunction;
-
-    var isFunction$1 = /*#__PURE__*/Object.freeze({
-        default: isFunction_1,
-        __moduleExports: isFunction_1
-    });
 
     /** Used to detect overreaching core-js shims. */
     var coreJsData = _root['__core-js_shared__'];
 
     var _coreJsData = coreJsData;
 
+    var _coreJsData$1 = /*#__PURE__*/Object.freeze({
+        default: _coreJsData,
+        __moduleExports: _coreJsData
+    });
+
+    var coreJsData$1 = ( _coreJsData$1 && _coreJsData ) || _coreJsData$1;
+
     /** Used to detect methods masquerading as native. */
     var maskSrcKey = (function() {
-      var uid = /[^.]+$/.exec(_coreJsData && _coreJsData.keys && _coreJsData.keys.IE_PROTO || '');
+      var uid = /[^.]+$/.exec(coreJsData$1 && coreJsData$1.keys && coreJsData$1.keys.IE_PROTO || '');
       return uid ? ('Symbol(src)_1.' + uid) : '';
     }());
 
@@ -883,11 +857,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _isMasked = isMasked;
-
-    var _isMasked$1 = /*#__PURE__*/Object.freeze({
-        default: _isMasked,
-        __moduleExports: _isMasked
-    });
 
     /** Used for built-in method references. */
     var funcProto = Function.prototype;
@@ -915,17 +884,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _toSource = toSource;
-
-    var _toSource$1 = /*#__PURE__*/Object.freeze({
-        default: _toSource,
-        __moduleExports: _toSource
-    });
-
-    var isFunction$2 = ( isFunction$1 && isFunction_1 ) || isFunction$1;
-
-    var isMasked$1 = ( _isMasked$1 && _isMasked ) || _isMasked$1;
-
-    var toSource$1 = ( _toSource$1 && _toSource ) || _toSource$1;
 
     /**
      * Used to match `RegExp`
@@ -961,14 +919,19 @@ var DataTable = (function (Sortable) {
      *  else `false`.
      */
     function baseIsNative(value) {
-      if (!isObject_1(value) || isMasked$1(value)) {
+      if (!isObject_1(value) || _isMasked(value)) {
         return false;
       }
-      var pattern = isFunction$2(value) ? reIsNative : reIsHostCtor;
-      return pattern.test(toSource$1(value));
+      var pattern = isFunction_1(value) ? reIsNative : reIsHostCtor;
+      return pattern.test(_toSource(value));
     }
 
     var _baseIsNative = baseIsNative;
+
+    var _baseIsNative$1 = /*#__PURE__*/Object.freeze({
+        default: _baseIsNative,
+        __moduleExports: _baseIsNative
+    });
 
     /**
      * Gets the value at `key` of `object`.
@@ -984,6 +947,8 @@ var DataTable = (function (Sortable) {
 
     var _getValue = getValue;
 
+    var baseIsNative$1 = ( _baseIsNative$1 && _baseIsNative ) || _baseIsNative$1;
+
     /**
      * Gets the native function at `key` of `object`.
      *
@@ -994,20 +959,13 @@ var DataTable = (function (Sortable) {
      */
     function getNative(object, key) {
       var value = _getValue(object, key);
-      return _baseIsNative(value) ? value : undefined;
+      return baseIsNative$1(value) ? value : undefined;
     }
 
     var _getNative = getNative;
 
-    var _getNative$1 = /*#__PURE__*/Object.freeze({
-        default: _getNative,
-        __moduleExports: _getNative
-    });
-
-    var getNative$1 = ( _getNative$1 && _getNative ) || _getNative$1;
-
     /* Built-in method references that are verified to be native. */
-    var nativeCreate = getNative$1(Object, 'create');
+    var nativeCreate = _getNative(Object, 'create');
 
     var _nativeCreate = nativeCreate;
 
@@ -1072,11 +1030,6 @@ var DataTable = (function (Sortable) {
 
     var _hashGet = hashGet;
 
-    var _hashGet$1 = /*#__PURE__*/Object.freeze({
-        default: _hashGet,
-        __moduleExports: _hashGet
-    });
-
     /** Used for built-in method references. */
     var objectProto$4 = Object.prototype;
 
@@ -1098,11 +1051,6 @@ var DataTable = (function (Sortable) {
     }
 
     var _hashHas = hashHas;
-
-    var _hashHas$1 = /*#__PURE__*/Object.freeze({
-        default: _hashHas,
-        __moduleExports: _hashHas
-    });
 
     /** Used to stand-in for `undefined` hash values. */
     var HASH_UNDEFINED$1 = '__lodash_hash_undefined__';
@@ -1126,10 +1074,6 @@ var DataTable = (function (Sortable) {
 
     var _hashSet = hashSet;
 
-    var hashGet$1 = ( _hashGet$1 && _hashGet ) || _hashGet$1;
-
-    var hashHas$1 = ( _hashHas$1 && _hashHas ) || _hashHas$1;
-
     /**
      * Creates a hash object.
      *
@@ -1151,8 +1095,8 @@ var DataTable = (function (Sortable) {
     // Add methods to `Hash`.
     Hash.prototype.clear = _hashClear;
     Hash.prototype['delete'] = _hashDelete;
-    Hash.prototype.get = hashGet$1;
-    Hash.prototype.has = hashHas$1;
+    Hash.prototype.get = _hashGet;
+    Hash.prototype.has = _hashHas;
     Hash.prototype.set = _hashSet;
 
     var _Hash = Hash;
@@ -1229,6 +1173,13 @@ var DataTable = (function (Sortable) {
 
     var _assocIndexOf = assocIndexOf;
 
+    var _assocIndexOf$1 = /*#__PURE__*/Object.freeze({
+        default: _assocIndexOf,
+        __moduleExports: _assocIndexOf
+    });
+
+    var assocIndexOf$1 = ( _assocIndexOf$1 && _assocIndexOf ) || _assocIndexOf$1;
+
     /** Used for built-in method references. */
     var arrayProto = Array.prototype;
 
@@ -1246,7 +1197,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheDelete(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         return false;
@@ -1274,7 +1225,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheGet(key) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       return index < 0 ? undefined : data[index][1];
     }
@@ -1291,7 +1242,7 @@ var DataTable = (function (Sortable) {
      * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
      */
     function listCacheHas(key) {
-      return _assocIndexOf(this.__data__, key) > -1;
+      return assocIndexOf$1(this.__data__, key) > -1;
     }
 
     var _listCacheHas = listCacheHas;
@@ -1308,7 +1259,7 @@ var DataTable = (function (Sortable) {
      */
     function listCacheSet(key, value) {
       var data = this.__data__,
-          index = _assocIndexOf(data, key);
+          index = assocIndexOf$1(data, key);
 
       if (index < 0) {
         ++this.size;
@@ -1348,24 +1299,10 @@ var DataTable = (function (Sortable) {
 
     var _ListCache = ListCache;
 
-    var _ListCache$1 = /*#__PURE__*/Object.freeze({
-        default: _ListCache,
-        __moduleExports: _ListCache
-    });
-
     /* Built-in method references that are verified to be native. */
-    var Map$1 = getNative$1(_root, 'Map');
+    var Map$1 = _getNative(_root, 'Map');
 
     var _Map = Map$1;
-
-    var _Map$1 = /*#__PURE__*/Object.freeze({
-        default: _Map,
-        __moduleExports: _Map
-    });
-
-    var ListCache$1 = ( _ListCache$1 && _ListCache ) || _ListCache$1;
-
-    var Map$2 = ( _Map$1 && _Map ) || _Map$1;
 
     /**
      * Removes all key-value entries from the map.
@@ -1378,7 +1315,7 @@ var DataTable = (function (Sortable) {
       this.size = 0;
       this.__data__ = {
         'hash': new _Hash,
-        'map': new (Map$2 || ListCache$1),
+        'map': new (_Map || _ListCache),
         'string': new _Hash
       };
     }
@@ -1450,11 +1387,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheGet = mapCacheGet;
 
-    var _mapCacheGet$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheGet,
-        __moduleExports: _mapCacheGet
-    });
-
     /**
      * Checks if a map value for `key` exists.
      *
@@ -1491,15 +1423,6 @@ var DataTable = (function (Sortable) {
 
     var _mapCacheSet = mapCacheSet;
 
-    var _mapCacheSet$1 = /*#__PURE__*/Object.freeze({
-        default: _mapCacheSet,
-        __moduleExports: _mapCacheSet
-    });
-
-    var mapCacheGet$1 = ( _mapCacheGet$1 && _mapCacheGet ) || _mapCacheGet$1;
-
-    var mapCacheSet$1 = ( _mapCacheSet$1 && _mapCacheSet ) || _mapCacheSet$1;
-
     /**
      * Creates a map cache object to store key-value pairs.
      *
@@ -1521,9 +1444,9 @@ var DataTable = (function (Sortable) {
     // Add methods to `MapCache`.
     MapCache.prototype.clear = _mapCacheClear;
     MapCache.prototype['delete'] = _mapCacheDelete;
-    MapCache.prototype.get = mapCacheGet$1;
+    MapCache.prototype.get = _mapCacheGet;
     MapCache.prototype.has = _mapCacheHas;
-    MapCache.prototype.set = mapCacheSet$1;
+    MapCache.prototype.set = _mapCacheSet;
 
     var _MapCache = MapCache;
 
@@ -1611,11 +1534,6 @@ var DataTable = (function (Sortable) {
 
     var _baseFindIndex = baseFindIndex;
 
-    var _baseFindIndex$1 = /*#__PURE__*/Object.freeze({
-        default: _baseFindIndex,
-        __moduleExports: _baseFindIndex
-    });
-
     /**
      * The base implementation of `_.isNaN` without support for number objects.
      *
@@ -1653,8 +1571,6 @@ var DataTable = (function (Sortable) {
 
     var _strictIndexOf = strictIndexOf;
 
-    var baseFindIndex$1 = ( _baseFindIndex$1 && _baseFindIndex ) || _baseFindIndex$1;
-
     /**
      * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
      *
@@ -1667,7 +1583,7 @@ var DataTable = (function (Sortable) {
     function baseIndexOf(array, value, fromIndex) {
       return value === value
         ? _strictIndexOf(array, value, fromIndex)
-        : baseFindIndex$1(array, _baseIsNaN, fromIndex);
+        : _baseFindIndex(array, _baseIsNaN, fromIndex);
     }
 
     var _baseIndexOf = baseIndexOf;
@@ -1726,14 +1642,9 @@ var DataTable = (function (Sortable) {
     var _cacheHas = cacheHas;
 
     /* Built-in method references that are verified to be native. */
-    var Set = getNative$1(_root, 'Set');
+    var Set = _getNative(_root, 'Set');
 
     var _Set = Set;
-
-    var _Set$1 = /*#__PURE__*/Object.freeze({
-        default: _Set,
-        __moduleExports: _Set
-    });
 
     /**
      * This method returns `undefined`.
@@ -1772,8 +1683,6 @@ var DataTable = (function (Sortable) {
 
     var _setToArray = setToArray;
 
-    var Set$1 = ( _Set$1 && _Set ) || _Set$1;
-
     /** Used as references for various `Number` constants. */
     var INFINITY = 1 / 0;
 
@@ -1784,8 +1693,8 @@ var DataTable = (function (Sortable) {
      * @param {Array} values The values to add to the set.
      * @returns {Object} Returns the new set.
      */
-    var createSet = !(Set$1 && (1 / _setToArray(new Set$1([,-0]))[1]) == INFINITY) ? noop_1 : function(values) {
-      return new Set$1(values);
+    var createSet = !(_Set && (1 / _setToArray(new _Set([,-0]))[1]) == INFINITY) ? noop_1 : function(values) {
+      return new _Set(values);
     };
 
     var _createSet = createSet;
@@ -2037,6 +1946,16 @@ var DataTable = (function (Sortable) {
         };
 
         return String(txt).replace(/[&<>"'`=/]/g, (char) => escapeHtmlMapping[char] || char);
+    }
+    // //// Neoffice — added. Our fork reloads the desk's list view (`cur_list`) before a sort and when the
+    // //// table is scrolled to its end, so a report view sorts and pages over all its records, not only the
+    // //// 20 shown. But `cur_list` is only the LAST list view opened: null on a query report opened directly
+    // //// (the sort threw "Cannot set properties of null" and never sorted, on every report), and a hidden
+    // //// list on a report opened after one (the sort reloaded that list with 10,000 rows first). The list
+    // //// is ours only when its own table is this one.
+    function ownListView(instance) {
+        const list = window.cur_list; // eslint-disable-line camelcase
+        return list && list.datatable === instance ? list : null;
     }
 
     /* eslint-disable max-len */
@@ -4468,27 +4387,33 @@ var DataTable = (function (Sortable) {
         }
 
         sortColumn(colIndex, nextSortOrder) {
-            cur_list.page_length = 10000;
-            cur_list.refresh().then(() => {
-                setTimeout(() => {
-                    this.instance.freeze();
-                    this.sortRows(colIndex, nextSortOrder)
-                        .then(() => {
-                            this.refreshHeader();
-                            return this.rowmanager.refreshRows();
-                        })
-                        .then(() => {
-                            this.instance.unfreeze();
-                            const filters = this.getAppliedFilters();
-                            return this.datamanager.filterRows(filters);
-                        })
-                        .then(() => {
-                            this.fireEvent('onSortColumn', this.getColumn(colIndex));
-                            this.setSortState();
-                        });
-                }, 200);
-            });
-
+            const sort = () => {
+                this.instance.freeze();
+                this.sortRows(colIndex, nextSortOrder)
+                    .then(() => {
+                        this.refreshHeader();
+                        return this.rowmanager.refreshRows();
+                    })
+                    .then(() => {
+                        this.instance.unfreeze();
+                        const filters = this.getAppliedFilters();
+                        return this.datamanager.filterRows(filters);
+                    })
+                    .then(() => {
+                        this.fireEvent('onSortColumn', this.getColumn(colIndex));
+                        this.setSortState();
+                    });
+            };
+            // //// Neoffice — the list view is reloaded with all its records before a sort only when this
+            // //// table is its own (ownListView in utils.js says why); a query report sorts the rows it
+            // //// holds, as upstream does.
+            const list = ownListView(this.instance);
+            if (!list) {
+                sort();
+                return;
+            }
+            list.page_length = 10000;
+            list.refresh().then(() => setTimeout(sort, 200));
         }
 
         saveSorting(colIndex) {
@@ -6082,18 +6007,22 @@ var DataTable = (function (Sortable) {
             this.bodyScrollable.addEventListener('scroll', () => {
                 const scrollPosition = this.bodyScrollable.scrollTop + this.bodyScrollable.clientHeight;
                 const threshold = this.bodyScrollable.scrollHeight * 0.80;
-                if (scrollPosition >= threshold && cur_list.page_length < cur_list.total_count && !this.isLoading) {
-                    this.loadMoreRows();
+                // //// Neoffice — only for the list view whose table this is (ownListView in utils.js); on a query report
+                // //// the line threw at every scroll.
+                const list = ownListView(this.instance);
+                if (list && scrollPosition >= threshold && list.page_length < list.total_count && !this.isLoading) {
+                    this.loadMoreRows(list);
                 }
             });
         }
 
-        loadMoreRows() {
+        loadMoreRows(list) {
+            // //// Neoffice — `list` is the list view this table belongs to (the caller checks it), not any `cur_list`.
             this.isLoading = true;
             console.log('loadMoreRows');
-            cur_list.start = cur_list.start + cur_list.page_length;
-            cur_list.page_length = cur_list.selected_page_count || 100;
-            cur_list.refresh().then(() => {
+            list.start = list.start + list.page_length;
+            list.page_length = list.selected_page_count || 100;
+            list.refresh().then(() => {
                 setTimeout(() => {
                     this.isLoading = false;
                 }, 200);

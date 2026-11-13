@@ -1927,6 +1927,16 @@ function escapeHTML(txt) {
 
     return String(txt).replace(/[&<>"'`=/]/g, (char) => escapeHtmlMapping[char] || char);
 }
+// //// Neoffice — added. Our fork reloads the desk's list view (`cur_list`) before a sort and when the
+// //// table is scrolled to its end, so a report view sorts and pages over all its records, not only the
+// //// 20 shown. But `cur_list` is only the LAST list view opened: null on a query report opened directly
+// //// (the sort threw "Cannot set properties of null" and never sorted, on every report), and a hidden
+// //// list on a report opened after one (the sort reloaded that list with 10,000 rows first). The list
+// //// is ours only when its own table is this one.
+function ownListView(instance) {
+    const list = window.cur_list; // eslint-disable-line camelcase
+    return list && list.datatable === instance ? list : null;
+}
 
 /* eslint-disable max-len */
 
@@ -4357,27 +4367,33 @@ class ColumnManager {
     }
 
     sortColumn(colIndex, nextSortOrder) {
-        cur_list.page_length = 10000;
-        cur_list.refresh().then(() => {
-            setTimeout(() => {
-                this.instance.freeze();
-                this.sortRows(colIndex, nextSortOrder)
-                    .then(() => {
-                        this.refreshHeader();
-                        return this.rowmanager.refreshRows();
-                    })
-                    .then(() => {
-                        this.instance.unfreeze();
-                        const filters = this.getAppliedFilters();
-                        return this.datamanager.filterRows(filters);
-                    })
-                    .then(() => {
-                        this.fireEvent('onSortColumn', this.getColumn(colIndex));
-                        this.setSortState();
-                    });
-            }, 200);
-        });
-
+        const sort = () => {
+            this.instance.freeze();
+            this.sortRows(colIndex, nextSortOrder)
+                .then(() => {
+                    this.refreshHeader();
+                    return this.rowmanager.refreshRows();
+                })
+                .then(() => {
+                    this.instance.unfreeze();
+                    const filters = this.getAppliedFilters();
+                    return this.datamanager.filterRows(filters);
+                })
+                .then(() => {
+                    this.fireEvent('onSortColumn', this.getColumn(colIndex));
+                    this.setSortState();
+                });
+        };
+        // //// Neoffice — the list view is reloaded with all its records before a sort only when this
+        // //// table is its own (ownListView in utils.js says why); a query report sorts the rows it
+        // //// holds, as upstream does.
+        const list = ownListView(this.instance);
+        if (!list) {
+            sort();
+            return;
+        }
+        list.page_length = 10000;
+        list.refresh().then(() => setTimeout(sort, 200));
     }
 
     saveSorting(colIndex) {
@@ -5971,18 +5987,22 @@ class BodyRenderer {
         this.bodyScrollable.addEventListener('scroll', () => {
             const scrollPosition = this.bodyScrollable.scrollTop + this.bodyScrollable.clientHeight;
             const threshold = this.bodyScrollable.scrollHeight * 0.80;
-            if (scrollPosition >= threshold && cur_list.page_length < cur_list.total_count && !this.isLoading) {
-                this.loadMoreRows();
+            // //// Neoffice — only for the list view whose table this is (ownListView in utils.js); on a query report
+            // //// the line threw at every scroll.
+            const list = ownListView(this.instance);
+            if (list && scrollPosition >= threshold && list.page_length < list.total_count && !this.isLoading) {
+                this.loadMoreRows(list);
             }
         });
     }
 
-    loadMoreRows() {
+    loadMoreRows(list) {
+        // //// Neoffice — `list` is the list view this table belongs to (the caller checks it), not any `cur_list`.
         this.isLoading = true;
         console.log('loadMoreRows');
-        cur_list.start = cur_list.start + cur_list.page_length;
-        cur_list.page_length = cur_list.selected_page_count || 100;
-        cur_list.refresh().then(() => {
+        list.start = list.start + list.page_length;
+        list.page_length = list.selected_page_count || 100;
+        list.refresh().then(() => {
             setTimeout(() => {
                 this.isLoading = false;
             }, 200);

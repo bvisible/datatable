@@ -1,4 +1,5 @@
 import HyperList from 'hyperlist';
+import { ownListView } from './utils'; // //// Neoffice — added: see utils.js
 
 export default class BodyRenderer {
     constructor(instance) {
@@ -20,18 +21,22 @@ export default class BodyRenderer {
         this.bodyScrollable.addEventListener('scroll', () => {
             const scrollPosition = this.bodyScrollable.scrollTop + this.bodyScrollable.clientHeight;
             const threshold = this.bodyScrollable.scrollHeight * 0.80;
-            if (scrollPosition >= threshold && cur_list.page_length < cur_list.total_count && !this.isLoading) {
-                this.loadMoreRows();
+            // //// Neoffice — only for the list view whose table this is (ownListView in utils.js); on a query report
+            // //// the line threw at every scroll.
+            const list = ownListView(this.instance);
+            if (list && scrollPosition >= threshold && list.page_length < list.total_count && !this.isLoading) {
+                this.loadMoreRows(list);
             }
         });
     }
 
-    loadMoreRows() {
+    loadMoreRows(list) {
+        // //// Neoffice — `list` is the list view this table belongs to (the caller checks it), not any `cur_list`.
         this.isLoading = true;
         console.log('loadMoreRows');
-        cur_list.start = cur_list.start + cur_list.page_length;
-        cur_list.page_length = cur_list.selected_page_count || 100;
-        cur_list.refresh().then(() => {
+        list.start = list.start + list.page_length;
+        list.page_length = list.selected_page_count || 100;
+        list.refresh().then(() => {
             setTimeout(() => {
                 this.isLoading = false;
             }, 200);

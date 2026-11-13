@@ -2,7 +2,8 @@ import $ from './dom';
 import Sortable from 'sortablejs';
 import {
     linkProperties,
-    debounce
+    debounce,
+    ownListView // //// Neoffice — added: see utils.js
 } from './utils';
 
 export default class ColumnManager {
@@ -272,27 +273,33 @@ export default class ColumnManager {
     }
 
     sortColumn(colIndex, nextSortOrder) {
-        cur_list.page_length = 10000;
-        cur_list.refresh().then(() => {
-            setTimeout(() => {
-                this.instance.freeze();
-                this.sortRows(colIndex, nextSortOrder)
-                    .then(() => {
-                        this.refreshHeader();
-                        return this.rowmanager.refreshRows();
-                    })
-                    .then(() => {
-                        this.instance.unfreeze();
-                        const filters = this.getAppliedFilters();
-                        return this.datamanager.filterRows(filters);
-                    })
-                    .then(() => {
-                        this.fireEvent('onSortColumn', this.getColumn(colIndex));
-                        this.setSortState();
-                    });
-            }, 200);
-        });
-
+        const sort = () => {
+            this.instance.freeze();
+            this.sortRows(colIndex, nextSortOrder)
+                .then(() => {
+                    this.refreshHeader();
+                    return this.rowmanager.refreshRows();
+                })
+                .then(() => {
+                    this.instance.unfreeze();
+                    const filters = this.getAppliedFilters();
+                    return this.datamanager.filterRows(filters);
+                })
+                .then(() => {
+                    this.fireEvent('onSortColumn', this.getColumn(colIndex));
+                    this.setSortState();
+                });
+        };
+        // //// Neoffice — the list view is reloaded with all its records before a sort only when this
+        // //// table is its own (ownListView in utils.js says why); a query report sorts the rows it
+        // //// holds, as upstream does.
+        const list = ownListView(this.instance);
+        if (!list) {
+            sort();
+            return;
+        }
+        list.page_length = 10000;
+        list.refresh().then(() => setTimeout(sort, 200));
     }
 
     saveSorting(colIndex) {
