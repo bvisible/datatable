@@ -199,6 +199,7 @@ export default class ColumnManager {
             this.datamanager.updateColumn(colIndex, {
                 width: finalWidth
             });
+            this.instance.resizedColumnWidths.set(this.getColumn(colIndex).id, finalWidth);
             this.setColumnHeaderWidth(colIndex);
             this.setColumnWidth(colIndex);
             this.style.refreshStickyColumns();
@@ -237,6 +238,7 @@ export default class ColumnManager {
 
             let width = $.measureTextWidth(cellText) + padding;
             this.datamanager.updateColumn(colIndex, { width });
+            this.instance.resizedColumnWidths.set(this.getColumn(colIndex).id, width);
             this.setColumnHeaderWidth(colIndex);
             this.setColumnWidth(colIndex);
             this.style.refreshStickyColumns();
