@@ -5512,7 +5512,11 @@ class RowManager {
     }
 
     getFilterInput(props) {
-        let title = `title="Filter based on ${props.name || 'Index'}"`;
+        // //// Neoffice — the tooltip of a column's filter was an English template literal ("Filter based on
+        // //// Groupe de clients"): it goes through the table's translations, like the rest of the column menu
+        // //// (the desk lists the two keys in frappe.utils.datatable.get_translations, neoffice-maintenance#2559).
+        const column = props.name || this.instance.translate('Index');
+        let title = `title="${this.instance.translate('Filter based on {column}', { column })}"`;
         const dataAttr = makeDataAttributeString(props);
         const fieldtype = props.fieldtype || null;
         // //
@@ -7292,7 +7296,7 @@ class DataTable {
 DataTable.instances = 0;
 
 var name = "frappe-datatable";
-var version = "1.22.0-neoffice.2";
+var version = "1.22.0-neoffice.3";
 var description = "A modern datatable library for the web";
 var main = "dist/frappe-datatable.cjs.js";
 var unpkg = "dist/frappe-datatable.min.js";
