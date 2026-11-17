@@ -732,19 +732,24 @@ export default class ColumnManager {
     }*/
 
     initializeAwesomplete(input, options, isCheckField = false) {
-        // Configuration du lazy loading
+        // //// Neoffice — the values come from get_distinct_values as they are stored: a doctype named by
+        // //// autoincrement gives numbers, and the search below calls toLowerCase on every option ("Error
+        // //// initializing select filters: E.toLowerCase is not a function" on 12 views of osiris, 17.11,
+        // //// maintenance#2805; the filter then offered no list). Every option is text from here on.
+        options = (options || []).map(option => String(option));
+        // Lazy loading settings
         const ITEMS_PER_PAGE = this.options.itemsPerPage || 20;
         let currentPage = 0;
         let filteredOptions = [...options];
         let inactivityTimer = null;
 
-        // Créer un conteneur personnalisé pour la liste avec un champ de recherche
+        // A container of our own for the list, with a search field
         const awesompleteContainer = document.createElement('div');
         awesompleteContainer.classList.add('awesomplete');
-        awesompleteContainer.style.display = 'none'; // Masquer par défaut
+        awesompleteContainer.style.display = 'none'; // Hidden by default
         document.body.appendChild(awesompleteContainer);
 
-        // Fonction pour réinitialiser le timer d'inactivité
+        // Restarts the inactivity timer
         const resetInactivityTimer = () => {
             if (inactivityTimer) {
                 clearTimeout(inactivityTimer);
@@ -753,10 +758,10 @@ export default class ColumnManager {
                 if (awesompleteContainer.style.display !== 'none') {
                     awesompleteContainer.style.display = 'none';
                 }
-            }, 5000); // 5 secondes
+            }, 5000); // 5 seconds
         };
 
-        // Fonction pour arrêter le timer
+        // Stops the timer
         const stopInactivityTimer = () => {
             if (inactivityTimer) {
                 clearTimeout(inactivityTimer);
@@ -764,18 +769,18 @@ export default class ColumnManager {
             }
         };
 
-        // Champ de recherche pour filtrer les options
+        // Search field that filters the options
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.classList.add('awesomplete__search');
         searchInput.placeholder = this.translate('Search...');
-        searchInput.style.paddingRight = '24px'; // Ajoute un espace pour la croix
+        searchInput.style.paddingRight = '24px'; // Room for the clear cross
         awesompleteContainer.appendChild(searchInput);
 
-        // Ajouter la croix de réinitialisation dans l'input de recherche
+        // The clear cross inside the search input
         const clearButton = document.createElement('span');
         clearButton.classList.add('awesomplete__clear');
-        clearButton.innerHTML = '&times;'; // Symbole de croix
+        clearButton.innerHTML = '&times;'; // Cross symbol
         clearButton.style.cursor = 'pointer';
         clearButton.style.position = 'absolute';
         clearButton.style.right = '10px';
@@ -784,30 +789,30 @@ export default class ColumnManager {
         clearButton.style.fontSize = '18px';
         clearButton.style.color = '#999';
 
-        // Ajouter la croix dans l'input de recherche
+        // Put the cross in the search input
         const searchInputContainer = document.createElement('div');
         searchInputContainer.style.position = 'relative';
         searchInputContainer.appendChild(searchInput);
         searchInputContainer.appendChild(clearButton);
         awesompleteContainer.appendChild(searchInputContainer);
 
-        // Ajouter la fonction de réinitialisation
+        // What the clear cross does
         clearButton.addEventListener('click', () => {
-            resetInactivityTimer(); // Réinitialiser le timer
-            input.value = ''; // Réinitialiser l'input principal
-            searchInput.value = ''; // Réinitialiser le champ de recherche
-            renderOptions(); // Réafficher toutes les options
+            resetInactivityTimer(); // Restart the timer
+            input.value = ''; // Clear the main input
+            searchInput.value = ''; // Clear the search field
+            renderOptions(); // Show every option again
 
-            // Mettre à jour les filtres dans le localStorage après réinitialisation
+            // Update the filters in localStorage after clearing
             const filters = this.getAppliedFilters();
             const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
             const instanceName = this.instance.name || '';
             const key = 'dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype;
             localStorage.setItem(key, JSON.stringify(filters));
 
-            this.applyFilter(filters); // Appliquer les filtres mis à jour
+            this.applyFilter(filters); // Apply the updated filters
 
-            // Remettre le focus sur le champ de recherche
+            // Focus the search field again
             searchInput.focus();
         });
 
@@ -815,7 +820,7 @@ export default class ColumnManager {
         checkboxList.classList.add('awesomplete__checkbox-list');
         awesompleteContainer.appendChild(checkboxList);
 
-        // Fonction pour afficher les options filtrées avec lazy loading
+        // Shows the filtered options, loaded lazily
         const renderOptions = (filter = '', reset = true) => {
             if (reset) {
                 currentPage = 0;
@@ -839,12 +844,12 @@ export default class ColumnManager {
                 checkbox.classList.add('awesomplete__checkbox');
 
                 const label = document.createElement('label');
-                // Traduire l'option si une traduction est disponible
+                // Translate the option when a translation exists
                 let translatedOption = this.translate(option);
                 label.textContent = translatedOption;
                 label.prepend(checkbox);
 
-                // Restaurer l'état de sélection des checkboxes si elles sont déjà sélectionnées
+                // Restore the checked state of checkboxes already selected
                 if (input.value.split('; ').includes(option)) {
                     checkbox.checked = true;
                 }
@@ -853,19 +858,19 @@ export default class ColumnManager {
                 checkboxList.appendChild(listItem);
 
                 checkbox.addEventListener('change', (event) => {
-                    // Empêcher la fermeture lors du clic sur une checkbox
+                    // A click on a checkbox does not close the list
                     event.stopPropagation();
-                    resetInactivityTimer(); // Réinitialiser le timer
+                    resetInactivityTimer(); // Restart the timer
                     this.handleCheckboxSelection(input, checkboxList, isCheckField);
 
-                    // Maintenir le focus sur le champ de recherche après sélection
+                    // Keep the focus on the search field after a selection
                     setTimeout(() => {
                         searchInput.focus();
                     }, 0);
                 });
             });
 
-            // Ajouter ou mettre à jour le bouton "Afficher plus"
+            // Add or update the "Show more" button
             const existingLoadMore = checkboxList.querySelector('.awesomplete__load-more');
             if (existingLoadMore) {
                 existingLoadMore.remove();
@@ -886,7 +891,7 @@ export default class ColumnManager {
 
                 loadMoreItem.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    resetInactivityTimer(); // Réinitialiser le timer
+                    resetInactivityTimer(); // Restart the timer
                     currentPage++;
                     renderOptions(searchInput.value, false);
                 });
@@ -894,7 +899,7 @@ export default class ColumnManager {
                 checkboxList.appendChild(loadMoreItem);
             }
 
-            // Afficher le nombre total d'éléments
+            // Show the total number of items
             const existingCount = awesompleteContainer.querySelector('.awesomplete__count');
             if (existingCount) {
                 existingCount.remove();
@@ -912,18 +917,18 @@ export default class ColumnManager {
                 const showingText = this.translate('Showing');
                 countDiv.textContent = `${showingText} ${showing} / ${total}`;
 
-                // Insérer après le champ de recherche
+                // Insert after the search field
                 searchInputContainer.insertAdjacentElement('afterend', countDiv);
             }
         };
 
-        // Filtrer les options au fur et à mesure que l'utilisateur tape
+        // Filter the options as the user types
         searchInput.addEventListener('input', () => {
-            resetInactivityTimer(); // Réinitialiser le timer
+            resetInactivityTimer(); // Restart the timer
             renderOptions(searchInput.value);
             input.value = searchInput.value;
 
-            // Mettre à jour les filtres dans le localStorage lorsqu'on tape
+            // Update the filters in localStorage while typing
             const filters = this.getAppliedFilters();
             const doctype = this.getDocTypeFromURL() || this.options.doctype || 'undefined';
             const instanceName = this.instance.name || '';
@@ -938,7 +943,7 @@ export default class ColumnManager {
 
         input.addEventListener('focus', () => {
             awesompleteContainer.style.display = 'block';
-            resetInactivityTimer(); // Démarrer le timer
+            resetInactivityTimer(); // Start the timer
 
             const rect = input.getBoundingClientRect();
             const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
@@ -949,7 +954,7 @@ export default class ColumnManager {
             awesompleteContainer.style.top = `${rect.bottom + scrollTop + 10}px`;
             awesompleteContainer.style.width = '250px';
 
-            // Utiliser setTimeout pour garantir que le focus est bien appliqué
+            // setTimeout so that the focus is really applied
             setTimeout(() => {
                 searchInput.focus();
             }, 0);
@@ -957,29 +962,29 @@ export default class ColumnManager {
 
         input.addEventListener('blur', () => {
             setTimeout(() => {
-                // Masquer la liste seulement si l'utilisateur n'a pas cliqué sur une option
+                // Hide the list only when the user did not click an option
                 if (!awesompleteContainer.contains(document.activeElement)) {
                     awesompleteContainer.style.display = 'none';
-                    stopInactivityTimer(); // Arrêter le timer
+                    stopInactivityTimer(); // Stop the timer
                 }
-            }, 200); // Retard pour permettre de cliquer sur une case à cocher avant que la liste ne soit cachée
+            }, 200); // Delay so a checkbox can be clicked before the list hides
         });
 
-        // Empêcher la fermeture lors du clic sur la liste
+        // A click on the list does not close it
         awesompleteContainer.addEventListener('mousedown', (event) => {
             event.preventDefault();
         });
 
-        // Réinitialiser le timer lors du mouvement de la souris
+        // Restart the timer when the mouse moves
         awesompleteContainer.addEventListener('mousemove', () => {
             resetInactivityTimer();
         });
 
-        // Fermer la liste en cliquant à l'extérieur
+        // Close the list on a click outside
         document.addEventListener('click', (event) => {
             if (!awesompleteContainer.contains(event.target) && event.target !== input) {
                 awesompleteContainer.style.display = 'none';
-                stopInactivityTimer(); // Arrêter le timer
+                stopInactivityTimer(); // Stop the timer
             }
         });
     }
@@ -1008,7 +1013,7 @@ export default class ColumnManager {
             }
         });
 
-        // Mettre à jour l'input avec les valeurs sélectionnées, séparées par ";"
+        // Fill the input with the selected values, separated by ";"
         input.value = selectedValues.join('; ');
 
         // Get current filters and save to localStorage with doctype from URL
@@ -1017,7 +1022,7 @@ export default class ColumnManager {
         const instanceName = this.instance.name || '';
         localStorage.setItem('dt-filters-' + (instanceName ? instanceName + '-' : '') + doctype, JSON.stringify(filters));
 
-        // Appliquer les filtres
+        // Apply the filters
         this.applyFilter(filters);
     }
 
