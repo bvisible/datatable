@@ -2981,7 +2981,7 @@ var DataTable = (function (Sortable) {
                 }
                 contentHTML = `<span class="filterable indicator-pill ${colour} ellipsis"
                             data-filter="${fieldname},=,${value}">
-                            <span class="ellipsis"> ${__(value)} </span>
+                            <span class="ellipsis"> ${__(value, null, docfield.context || docfield.parent)} </span>
                         </span>`;
             }
 
@@ -7386,7 +7386,7 @@ var DataTable = (function (Sortable) {
     DataTable.instances = 0;
 
     var name = "frappe-datatable";
-    var version = "1.22.0-neoffice.3";
+    var version = "1.22.0-neoffice.4";
     var description = "A modern datatable library for the web";
     var main = "dist/frappe-datatable.cjs.js";
     var unpkg = "dist/frappe-datatable.min.js";

@@ -2889,9 +2889,14 @@ class CellManager {
                 else if (value === 'Submitted') colour = 'green';
                 window._dtSelectColourCache[cacheKey] = colour;
             }
+            //// Neoffice — the option is translated with the field's context, as Frappe's Select control and its
+            //// formatter do (the Frappe fork: `df.context || df.parent`). Upstream looked the bare word up, so a
+            //// report view's cell showed another reading of the same English word: a booking held for its payment
+            //// read « Encaissée », the word of a deposit that is held (neoffice-maintenance#3009). Frappe's `__`
+            //// falls back to the bare word when no entry carries the context: nothing that translated before changes.
             contentHTML = `<span class="filterable indicator-pill ${colour} ellipsis"
                             data-filter="${fieldname},=,${value}">
-                            <span class="ellipsis"> ${__(value)} </span>
+                            <span class="ellipsis"> ${__(value, null, docfield.context || docfield.parent)} </span>
                         </span>`;
         }
 
@@ -7296,7 +7301,7 @@ class DataTable {
 DataTable.instances = 0;
 
 var name = "frappe-datatable";
-var version = "1.22.0-neoffice.3";
+var version = "1.22.0-neoffice.4";
 var description = "A modern datatable library for the web";
 var main = "dist/frappe-datatable.cjs.js";
 var unpkg = "dist/frappe-datatable.min.js";
