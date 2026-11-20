@@ -4733,7 +4733,7 @@ class ColumnManager {
                 return Promise.resolve();
             } else if (fieldtype === 'Select') {
                 const options = column.docfield.options ? column.docfield.options.split('\n').filter(option => option).sort() : [];
-                this.initializeAwesomplete(input, options);
+                this.initializeAwesomplete(input, options, false, column.docfield);
                 return Promise.resolve();
             } else if (fieldtype === 'Link') {
                 // //// Neoffice — get_distinct_values now reads with the caller's permissions (bvisible/frappe
@@ -4830,12 +4830,19 @@ class ColumnManager {
         });
     }*/
 
-    initializeAwesomplete(input, options, isCheckField = false) {
+    initializeAwesomplete(input, options, isCheckField = false, docfield = null) {
         // //// Neoffice — the values come from get_distinct_values as they are stored: a doctype named by
         // //// autoincrement gives numbers, and the search below calls toLowerCase on every option ("Error
         // //// initializing select filters: E.toLowerCase is not a function" on 12 views of osiris, 17.11,
         // //// maintenance#2805; the filter then offered no list). Every option is text from here on.
         options = (options || []).map(option => String(option));
+        // //// Neoffice — a Select's option reads as its field reads it: Frappe's `__` with the field's context (`df.context ||
+        // //// df.parent`), as its cells do (1.22.0-neoffice.4). The table's own dictionary knew « Cancelled » and « Completed », not
+        // //// « Confirmed » nor « Held », which stayed in English in the filter of a booking's status (neoffice-maintenance#3009). A
+        // //// search finds an option by what it reads as well as by its value.
+        const labelOf = option => (docfield && typeof __ === 'function')
+            ? __(option, null, docfield.context || docfield.parent)
+            : this.translate(option);
         // Lazy loading settings
         const ITEMS_PER_PAGE = this.options.itemsPerPage || 20;
         let currentPage = 0;
@@ -4925,7 +4932,8 @@ class ColumnManager {
                 currentPage = 0;
                 checkboxList.innerHTML = '';
                 filteredOptions = options.filter(option =>
-                    option.toLowerCase().includes(filter.toLowerCase())
+                    option.toLowerCase().includes(filter.toLowerCase()) ||
+                    String(labelOf(option)).toLowerCase().includes(filter.toLowerCase())
                 );
             }
 
@@ -4944,7 +4952,7 @@ class ColumnManager {
 
                 const label = document.createElement('label');
                 // Translate the option when a translation exists
-                let translatedOption = this.translate(option);
+                let translatedOption = labelOf(option);
                 label.textContent = translatedOption;
                 label.prepend(checkbox);
 
@@ -7301,7 +7309,7 @@ class DataTable {
 DataTable.instances = 0;
 
 var name = "frappe-datatable";
-var version = "1.22.0-neoffice.4";
+var version = "1.22.0-neoffice.5";
 var description = "A modern datatable library for the web";
 var main = "dist/frappe-datatable.cjs.js";
 var unpkg = "dist/frappe-datatable.min.js";
